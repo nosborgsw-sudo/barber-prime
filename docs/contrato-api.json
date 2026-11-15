@@ -1,0 +1,1350 @@
+{
+  "versao": "1.0.0",
+  "etapa": "operacional",
+  "estadoProduto": "operacional_local",
+  "implementacaoAtual": [
+    "API HTTP completa (server/**) sobre PostgreSQL (pg com DATABASE_URL ou PGlite embutido)",
+    "frontend servido em /",
+    "testes de backend em tests/backend"
+  ],
+  "convencoes": {
+    "base": "/api",
+    "conteudo": "application/json; charset=utf-8",
+    "sucesso": "{data: objeto|lista, meta?: {cursor?: string}}; health é a exceção de bootstrap documentada",
+    "erro": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Entrada inválida.",
+        "fields": {
+          "campo": "motivo"
+        }
+      }
+    },
+    "erros": {
+      "400": "JSON, query ou parâmetros inválidos",
+      "401": "Sessão ausente, inválida ou expirada",
+      "403": "Papel sem permissão ou CSRF inválido",
+      "404": "Recurso inexistente ou não pertencente ao solicitante",
+      "409": "Conflito de horário, versão ou idempotência",
+      "413": "Corpo acima de 64 KiB",
+      "415": "Content-Type não suportado",
+      "422": "Regra de negócio recusada",
+      "429": "Limite de requisições, com Retry-After",
+      "500": "Erro interno sem stack ou SQL",
+      "503": "Banco ou provedor necessário indisponível"
+    },
+    "datas": "Instantes ISO 8601 com offset, persistidos timestamptz UTC; datas locais YYYY-MM-DD; fuso IANA do estabelecimento. Intervalos [inicio,fim).",
+    "dinheiro": "Inteiro em centavos BRL; valor e duração congelados no agendamento.",
+    "ids": "UUID gerado no servidor; validar UUID antes de consultar.",
+    "paginacao": "limit inteiro 1..100 (padrão 25); cursor opaco validado; períodos da agenda limitados a 31 dias.",
+    "validacao": "Rejeitar campos desconhecidos; verificar tipo, comprimento e formato na fronteira; SQL parametrizado; textos como texto, nunca HTML.",
+    "concorrencia": "Transação e exclusion constraint PostgreSQL por profissional/recurso; conflito 23P01 vira 409 SLOT_CONFLICT; reagendar não perde reserva original se falhar.",
+    "idempotencia": "POST /appointments exige Idempotency-Key aleatória de 16..128 caracteres; chave vinculada à identidade e hash do corpo por 24h; mesmo corpo retorna resultado anterior, corpo diferente 409.",
+    "versao": "PATCH de entidades mutáveis exige campo version inteiro positivo; atualização condicional; versão obsoleta retorna 409 VERSION_CONFLICT."
+  },
+  "seguranca": {
+    "sessao": "Cookie opaco aleatório com pelo menos 256 bits; somente hash persistido. Em produção __Host-bp_session, HttpOnly, Secure, SameSite=Lax, Path=/, sem Domain. Expiração absoluta 7 dias e inatividade 12h; logout e troca de credencial revogam sessão.",
+    "csrf": "GET /auth/csrf entrega token vinculado à sessão anônima/autenticada. Toda mutação exige X-CSRF-Token e validação de Origin allowlist, inclusive cadastro/login. Sem CORS aberto com credenciais.",
+    "cliente": "Cadastro pede somente nome e telefone com DDD. Gera sessão de dispositivo para novo cadastro. Telefone existente nunca concede acesso: fluxo de recuperação/prova de posse por provedor. Resposta de cadastro é genérica, indistinguível para impedir enumeração; aparelho recebe o mesmo cookie anônimo/promovido opaco.",
+    "recuperacao": "Desafio de posse enviado por provedor SMS/WhatsApp configurado; token armazenado por hash, TTL 5min, uso único, até 5 tentativas; respostas genéricas e limitação por IP e telefone. Sem provedor retorna 503, sem modo simulado nem código fixo. Contas administrativas não recuperadas pelo cadastro público.",
+    "equipe": "Login e senha com scrypt/Argon2id e salt aleatório; nenhum segredo inicial versionado. Onboarding admin por comando interativo controlado pela frente backend/devops; não criar senha de teste ou rota de bootstrap pública.",
+    "autorizacao": "customer somente próprios dados; barber somente agenda própria e campos estritamente necessários; admin configura e gerencia. ID alheio retorna 404. Telefone e UUID isolados nunca autorizam.",
+    "privacidade": "Dados de exemplo sem pessoas reais. Agenda pública exibe apenas horários disponíveis; não devolve nomes ou telefones. Logs sem telefone, cookies, tokens ou senhas; trilha administrativa de metadados sem segredos.",
+    "rateLimit": "Limites compartilhados em armazenamento persistente: cadastro 5/15min/IP, login e desafios 5/15min/IP e identidade normalizada; limites de leitura e reserva configuráveis. Sem depender de memória de um único processo em produção."
+  },
+  "reservas": {
+    "frontend": [
+      "public/**",
+      "web/**",
+      "frontend/**",
+      "client/**",
+      "app-autonomo.html",
+      "tests/frontend/**"
+    ],
+    "backend": [
+      "server/**",
+      "api/**",
+      "backend/**",
+      "lib/**",
+      "tests/backend/**"
+    ],
+    "rpa": [
+      "automacao/**",
+      "automation/**",
+      "jobs/**",
+      "tests/rpa/**"
+    ],
+    "devops": [
+      ".github/**",
+      "tools/**",
+      "infra/**",
+      "tests/devops/**"
+    ],
+    "dados": [
+      "db/**",
+      "database/**",
+      "migrations/**",
+      "sql/**",
+      "tests/dados/**"
+    ]
+  },
+  "arquivosCompartilhados": {
+    "dono": "integracao",
+    "arquivos": [
+      "package.json",
+      "package-lock.json",
+      ".gitignore",
+      "docs/**",
+      ".homologacao/**",
+      "tests/arquitetura/**"
+    ],
+    "regra": "Frentes não editam estes arquivos em paralelo; pedem ajuste no contrato de entrega. scripts/** não é reservado a ninguém: usar tools/ para devops e automation/ para rpa."
+  },
+  "esquemas": {
+    "Health": {
+      "status": "ok|error",
+      "stage": "operational",
+      "operational": "boolean",
+      "database": "ok|unavailable",
+      "http": "200 com banco respondendo; 503 sem banco"
+    },
+    "Shop": {
+      "id": "uuid",
+      "name": "string 1..100",
+      "timezone": "IANA",
+      "address": "string 0..300",
+      "contactPhone": "E.164|null",
+      "version": "integer >=1"
+    },
+    "Customer": {
+      "id": "uuid",
+      "name": "string 2..100",
+      "phone": "E.164 brasileiro normalizado e UNIQUE",
+      "phoneVerifiedAt": "instant|null",
+      "createdAt": "instant",
+      "version": "integer >=1"
+    },
+    "Staff": {
+      "id": "uuid",
+      "name": "string 2..100",
+      "role": "barber|admin",
+      "active": "boolean",
+      "version": "integer >=1"
+    },
+    "Service": {
+      "id": "uuid",
+      "name": "string 2..100",
+      "durationMinutes": "integer 5..480",
+      "priceCents": "integer 0..1000000",
+      "active": "boolean",
+      "version": "integer >=1"
+    },
+    "WorkingHours": {
+      "id": "uuid",
+      "staffId": "uuid",
+      "weekday": "integer 0..6",
+      "startLocal": "HH:mm",
+      "endLocal": "HH:mm > startLocal",
+      "validFrom": "date",
+      "validUntil": "date|null",
+      "version": "integer >=1"
+    },
+    "Block": {
+      "id": "uuid",
+      "staffId": "uuid",
+      "startAt": "instant",
+      "endAt": "instant > startAt",
+      "reason": "string 0..200 privada",
+      "version": "integer >=1"
+    },
+    "Appointment": {
+      "id": "uuid",
+      "customerId": "uuid derivado de sessão ou admin",
+      "staffId": "uuid barbeiro ativo",
+      "serviceId": "uuid serviço ativo",
+      "startAt": "instant futuro",
+      "endAt": "instant calculado no servidor",
+      "durationMinutes": "snapshot integer",
+      "priceCents": "snapshot integer",
+      "status": "confirmed|completed|cancelled|no_show",
+      "notes": "string 0..500 privada",
+      "version": "integer >=1",
+      "createdAt": "instant"
+    },
+    "Availability": {
+      "staffId": "uuid",
+      "serviceId": "uuid",
+      "date": "date local",
+      "timezone": "IANA",
+      "slots": [
+        {
+          "startAt": "instant",
+          "endAt": "instant"
+        }
+      ]
+    },
+    "Session": {
+      "id": "uuid privado",
+      "tokenHash": "hash privado",
+      "principalId": "uuid|null",
+      "role": "anonymous|customer|barber|admin",
+      "expiresAt": "instant",
+      "lastSeenAt": "instant",
+      "revokedAt": "instant|null"
+    },
+    "Challenge": {
+      "id": "uuid",
+      "phoneHash": "HMAC privado",
+      "codeHash": "hash privado",
+      "expiresAt": "instant",
+      "attempts": "integer 0..5",
+      "consumedAt": "instant|null"
+    },
+    "AuditEvent": {
+      "id": "uuid",
+      "actorId": "uuid",
+      "action": "string",
+      "entityId": "uuid",
+      "createdAt": "instant"
+    }
+  },
+  "regrasDados": [
+    "Quatro barbeiros iniciais configuráveis; seed sem clientes reais, senhas ou sessões.",
+    "Unicidade de telefone após normalização +55 e DDD; nunca deduplicar apenas por texto de entrada.",
+    "CHECK fim > inicio e limites finitos; FK de serviço, cliente e barbeiro; índices de FK e consultas por período.",
+    "Agenda unificada de ocupação para reservas e bloqueios, para a mesma exclusion constraint proteger ambos; não aplicar exclusões separadas incapazes de prevenir conflito cruzado.",
+    "EXCLUDE USING gist (staff_id WITH =, period WITH &&) para ocupações ativas; extensão btree_gist e tstzrange [). Reserva cancelada libera ocupação na mesma transação.",
+    "completed/no_show não podem ser reabertos pelo cliente; cancelamento repetido retorna estado cancelado sem duplicar efeitos. Janela de cancelamento configurável.",
+    "Bloqueio e alteração de expediente que invalidem reservas confirmadas são recusados com 409; não cancelar clientes silenciosamente.",
+    "Outbox transacional para notificações com chave deduplicadora; falha de envio não desfaz reserva confirmada; retorno nunca afirma mensagem entregue sem confirmação."
+  ],
+  "rotas": [
+    {
+      "metodo": "GET",
+      "caminho": "/api/health",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": "esquema:Health",
+      "erros": []
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/auth/csrf",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": {
+          "csrfToken": "string aleatória"
+        }
+      },
+      "erros": [
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/auth/register",
+      "estado": "implementada",
+      "auth": "publica+csrf",
+      "entrada": {
+        "name": "string 2..100",
+        "phone": "string brasileiro com DDD"
+      },
+      "status": 202,
+      "resposta": {
+        "data": {
+          "message": "Solicitação recebida. Continue no dispositivo ou verifique a posse do telefone."
+        }
+      },
+      "erros": [
+        400,
+        403,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/auth/challenges",
+      "estado": "implementada",
+      "auth": "publica+csrf",
+      "entrada": {
+        "phone": "string brasileiro com DDD"
+      },
+      "status": 202,
+      "resposta": {
+        "data": {
+          "challengeId": "uuid opaco",
+          "message": "Se possível, enviaremos as instruções."
+        }
+      },
+      "erros": [
+        400,
+        403,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/auth/challenges/verify",
+      "estado": "implementada",
+      "auth": "publica+csrf",
+      "entrada": {
+        "challengeId": "uuid",
+        "code": "string 6 dígitos"
+      },
+      "status": 200,
+      "resposta": {
+        "data": {
+          "role": "customer"
+        }
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/auth/session",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": "null sem sessão; senão {id, name, role, phone (só cliente)}"
+      },
+      "erros": [
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/auth/session",
+      "estado": "implementada",
+      "auth": "publica+csrf",
+      "entrada": {
+        "login": "string 3..100",
+        "password": "string 12..128"
+      },
+      "status": 200,
+      "resposta": {
+        "data": {
+          "id": "uuid",
+          "role": "barber|admin"
+        }
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "DELETE",
+      "caminho": "/api/auth/session",
+      "estado": "implementada",
+      "auth": "autenticada+csrf",
+      "entrada": null,
+      "status": 204,
+      "resposta": null,
+      "erros": [
+        401,
+        403
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/me",
+      "estado": "implementada",
+      "auth": "autenticada",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": {
+          "id": "uuid",
+          "name": "string",
+          "role": "customer|barber|admin"
+        }
+      },
+      "erros": [
+        401
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/me/export",
+      "estado": "implementada",
+      "auth": "customer",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": {
+          "customer": "{id, name, phone, phoneVerifiedAt, createdAt}",
+          "appointments": "[{id, staffName, serviceName, startAt, endAt, status, notes, priceCents, createdAt}]",
+          "exportedAt": "ISO 8601"
+        }
+      },
+      "erros": [
+        401,
+        403,
+        429
+      ]
+    },
+    {
+      "metodo": "DELETE",
+      "caminho": "/api/me",
+      "estado": "implementada",
+      "auth": "customer+csrf",
+      "entrada": null,
+      "status": 204,
+      "resposta": null,
+      "erros": [
+        401,
+        403,
+        429
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/shop",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Shop + openingHours: [{weekday 0..6, startLocal HH:mm, endLocal HH:mm}] (dia sem expediente ausente)"
+      },
+      "erros": [
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/staff",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": [
+          {
+            "id": "uuid",
+            "name": "string",
+            "role": "barber"
+          }
+        ]
+      },
+      "erros": [
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/services",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:Service"
+        ]
+      },
+      "erros": [
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/availability",
+      "estado": "implementada",
+      "auth": "publica",
+      "entrada": {
+        "query": {
+          "staffId": "uuid",
+          "serviceId": "uuid",
+          "date": "YYYY-MM-DD"
+        }
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Availability"
+      },
+      "erros": [
+        400,
+        404,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/appointments",
+      "estado": "implementada",
+      "auth": "customer|admin + csrf",
+      "entrada": {
+        "staffId": "uuid",
+        "serviceId": "uuid",
+        "startAt": "instant",
+        "customerId": "uuid somente admin; omitido para cliente",
+        "notes": "string opcional 0..500"
+      },
+      "status": 201,
+      "resposta": {
+        "data": "esquema:Appointment"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        429,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/appointments",
+      "estado": "implementada",
+      "auth": "customer próprias; barber próprias; admin todas",
+      "entrada": {
+        "query": {
+          "from": "date",
+          "to": "date",
+          "limit": "1..100",
+          "cursor": "string opcional",
+          "staffId": "uuid opcional admin"
+        }
+      },
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:Appointment"
+        ],
+        "meta": {
+          "cursor": "string|null"
+        }
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/appointments/:id",
+      "estado": "implementada",
+      "auth": "proprietario|barber responsável|admin",
+      "entrada": {
+        "params": {
+          "id": "uuid"
+        }
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Appointment"
+      },
+      "erros": [
+        400,
+        401,
+        404,
+        503
+      ]
+    },
+    {
+      "metodo": "PATCH",
+      "caminho": "/api/appointments/:id/reschedule",
+      "estado": "implementada",
+      "auth": "proprietario|admin + csrf",
+      "entrada": {
+        "staffId": "uuid",
+        "startAt": "instant",
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Appointment"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/appointments/:id/cancel",
+      "estado": "implementada",
+      "auth": "proprietario|admin + csrf",
+      "entrada": {
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Appointment"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "PATCH",
+      "caminho": "/api/appointments/:id/status",
+      "estado": "implementada",
+      "auth": "barber responsável|admin + csrf",
+      "entrada": {
+        "status": "completed|no_show",
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Appointment"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/admin/staff",
+      "estado": "implementada",
+      "auth": "admin",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:Staff"
+        ]
+      },
+      "erros": [
+        401,
+        403,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/admin/services",
+      "estado": "implementada",
+      "auth": "admin",
+      "entrada": null,
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:Service"
+        ]
+      },
+      "erros": [
+        401,
+        403,
+        503
+      ]
+    },
+    {
+      "metodo": "PATCH",
+      "caminho": "/api/admin/shop",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "name": "string opcional",
+        "timezone": "IANA opcional",
+        "address": "string opcional",
+        "contactPhone": "string opcional",
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Shop"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/admin/services",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "name": "string",
+        "durationMinutes": "integer",
+        "priceCents": "integer"
+      },
+      "status": 201,
+      "resposta": {
+        "data": "esquema:Service"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "PATCH",
+      "caminho": "/api/admin/services/:id",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "name": "string opcional",
+        "durationMinutes": "integer opcional",
+        "priceCents": "integer opcional",
+        "active": "boolean opcional",
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Service"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "PATCH",
+      "caminho": "/api/admin/staff/:id",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "name": "string opcional",
+        "active": "boolean opcional",
+        "version": "integer >=1"
+      },
+      "status": 200,
+      "resposta": {
+        "data": "esquema:Staff"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/admin/working-hours",
+      "estado": "implementada",
+      "auth": "admin",
+      "entrada": {
+        "query": {
+          "staffId": "uuid"
+        }
+      },
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:WorkingHours"
+        ]
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        503
+      ]
+    },
+    {
+      "metodo": "PUT",
+      "caminho": "/api/admin/working-hours/:staffId",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "version": "integer >=1",
+        "periods": [
+          {
+            "weekday": "0..6",
+            "startLocal": "HH:mm",
+            "endLocal": "HH:mm",
+            "validFrom": "date",
+            "validUntil": "date|null"
+          }
+        ]
+      },
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:WorkingHours"
+        ]
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "GET",
+      "caminho": "/api/admin/blocks",
+      "estado": "implementada",
+      "auth": "admin",
+      "entrada": {
+        "query": {
+          "staffId": "uuid",
+          "from": "date",
+          "to": "date"
+        }
+      },
+      "status": 200,
+      "resposta": {
+        "data": [
+          "esquema:Block"
+        ]
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        503
+      ]
+    },
+    {
+      "metodo": "POST",
+      "caminho": "/api/admin/blocks",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "staffId": "uuid",
+        "startAt": "instant",
+        "endAt": "instant",
+        "reason": "string opcional"
+      },
+      "status": 201,
+      "resposta": {
+        "data": "esquema:Block"
+      },
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        503
+      ]
+    },
+    {
+      "metodo": "DELETE",
+      "caminho": "/api/admin/blocks/:id",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "params": {
+          "id": "uuid"
+        },
+        "query": {
+          "version": "integer >=1"
+        }
+      },
+      "status": 204,
+      "resposta": null,
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        503
+      ]
+    },
+    {
+      "metodo": "PUT",
+      "caminho": "/api/admin/staff/:id/credentials",
+      "estado": "implementada",
+      "auth": "admin+csrf",
+      "entrada": {
+        "corpo": {
+          "login": "string 3..100 [a-z0-9._-]",
+          "password": "string 12..128"
+        }
+      },
+      "status": 204,
+      "resposta": null,
+      "erros": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        503
+      ]
+    }
+  ],
+  "sistema": {
+    "natureza": "Modelo alvo: módulos planejados não são implementação. Somente bootstrap e testes de arquitetura existem agora.",
+    "modulos": [
+      {
+        "id": "frontend",
+        "dono": "frontend",
+        "estado": "planejado",
+        "responsabilidade": "Landing premium responsiva, fluxo de reserva, área do cliente e calendário administrativo com acesso por papel.",
+        "arquivos": [
+          "web/**",
+          "public/**",
+          "tests/frontend/**"
+        ],
+        "prove": [
+          "componente:booking",
+          "componente:calendar",
+          "componente:admin"
+        ],
+        "consome": [
+          "GET /api/shop",
+          "GET /api/staff",
+          "GET /api/services",
+          "GET /api/availability",
+          "GET /api/auth/csrf",
+          "POST /api/auth/register",
+          "POST /api/auth/challenges",
+          "POST /api/auth/challenges/verify",
+          "POST /api/auth/session",
+          "DELETE /api/auth/session",
+          "GET /api/me",
+          "POST /api/appointments",
+          "GET /api/appointments",
+          "GET /api/appointments/:id",
+          "PATCH /api/appointments/:id/reschedule",
+          "POST /api/appointments/:id/cancel",
+          "PATCH /api/appointments/:id/status",
+          "PATCH /api/admin/shop",
+          "POST /api/admin/services",
+          "PATCH /api/admin/services/:id",
+          "PATCH /api/admin/staff/:id",
+          "GET /api/admin/working-hours",
+          "PUT /api/admin/working-hours/:staffId",
+          "GET /api/admin/blocks",
+          "POST /api/admin/blocks",
+          "DELETE /api/admin/blocks/:id"
+        ],
+        "requisitos": [
+          "R3",
+          "R4",
+          "R10",
+          "R11",
+          "R12",
+          "R13",
+          "R14",
+          "R15",
+          "R16",
+          "R17",
+          "R18",
+          "R20"
+        ]
+      },
+      {
+        "id": "autonomo",
+        "dono": "frontend",
+        "estado": "planejado",
+        "responsabilidade": "HTML único offline explicitamente DEMONSTRAÇÃO, sem substituir sistema operacional; dados apenas locais.",
+        "arquivos": [
+          "app-autonomo.html",
+          "tests/frontend/autonomo.test.mjs"
+        ],
+        "prove": [
+          "arquivo:app-autonomo.html"
+        ],
+        "consome": [
+          "esquema:Appointment",
+          "esquema:Service",
+          "esquema:Staff"
+        ],
+        "requisitos": [
+          "R3",
+          "R13",
+          "R15"
+        ]
+      },
+      {
+        "id": "bootstrap",
+        "dono": "backend",
+        "estado": "implementado",
+        "responsabilidade": "Processo HTTP mínimo, saúde e erro 404; não é API operacional.",
+        "arquivos": [
+          "server/index.mjs",
+          "server/app.mjs"
+        ],
+        "prove": [
+          "GET /api/health",
+          "funcao:createApp",
+          "funcao:startServer"
+        ],
+        "consome": [],
+        "requisitos": [
+          "R3",
+          "R7"
+        ]
+      },
+      {
+        "id": "auth",
+        "dono": "backend",
+        "estado": "planejado",
+        "responsabilidade": "Sessões, CSRF, autorização, cadastro sem duplicação e prova de posse de telefone.",
+        "arquivos": [
+          "server/auth/**",
+          "tests/backend/auth.test.mjs"
+        ],
+        "prove": [
+          "GET /api/auth/csrf",
+          "POST /api/auth/register",
+          "POST /api/auth/challenges",
+          "POST /api/auth/challenges/verify",
+          "POST /api/auth/session",
+          "DELETE /api/auth/session",
+          "GET /api/me"
+        ],
+        "consome": [
+          "esquema:Customer",
+          "esquema:Staff",
+          "esquema:Session",
+          "esquema:Challenge",
+          "funcao:sendChallenge"
+        ],
+        "requisitos": [
+          "R16",
+          "R17",
+          "R18",
+          "R19",
+          "R20"
+        ]
+      },
+      {
+        "id": "booking",
+        "dono": "backend",
+        "estado": "planejado",
+        "responsabilidade": "Disponibilidade, reservas, reagendamento e cancelamento com autorização e concorrência real.",
+        "arquivos": [
+          "server/booking/**",
+          "tests/backend/booking.test.mjs"
+        ],
+        "prove": [
+          "GET /api/availability",
+          "POST /api/appointments",
+          "GET /api/appointments",
+          "GET /api/appointments/:id",
+          "PATCH /api/appointments/:id/reschedule",
+          "POST /api/appointments/:id/cancel",
+          "PATCH /api/appointments/:id/status"
+        ],
+        "consome": [
+          "esquema:Appointment",
+          "esquema:WorkingHours",
+          "esquema:Block",
+          "funcao:transaction",
+          "funcao:reserveOccupation",
+          "evento:appointment.changed"
+        ],
+        "requisitos": [
+          "R2",
+          "R3",
+          "R4",
+          "R7",
+          "R15",
+          "R19",
+          "R20"
+        ]
+      },
+      {
+        "id": "catalog-admin",
+        "dono": "backend",
+        "estado": "planejado",
+        "responsabilidade": "Catálogo, configuração, horários e bloqueios por administrador.",
+        "arquivos": [
+          "server/catalog/**",
+          "tests/backend/catalog.test.mjs"
+        ],
+        "prove": [
+          "GET /api/shop",
+          "GET /api/staff",
+          "GET /api/services",
+          "PATCH /api/admin/shop",
+          "POST /api/admin/services",
+          "PATCH /api/admin/services/:id",
+          "PATCH /api/admin/staff/:id",
+          "GET /api/admin/working-hours",
+          "PUT /api/admin/working-hours/:staffId",
+          "GET /api/admin/blocks",
+          "POST /api/admin/blocks",
+          "DELETE /api/admin/blocks/:id"
+        ],
+        "consome": [
+          "esquema:Shop",
+          "esquema:Staff",
+          "esquema:Service",
+          "esquema:WorkingHours",
+          "esquema:Block",
+          "funcao:reserveOccupation"
+        ],
+        "requisitos": [
+          "R2",
+          "R3",
+          "R4",
+          "R20"
+        ]
+      },
+      {
+        "id": "database",
+        "dono": "dados",
+        "estado": "planejado",
+        "responsabilidade": "Migrações PostgreSQL, repositórios parametrizados, ocupação unificada, seed e testes com banco real.",
+        "arquivos": [
+          "db/**",
+          "migrations/**",
+          "tests/dados/**"
+        ],
+        "prove": [
+          "esquema:Shop",
+          "esquema:Staff",
+          "esquema:Customer",
+          "esquema:Service",
+          "esquema:WorkingHours",
+          "esquema:Block",
+          "esquema:Appointment",
+          "esquema:Session",
+          "esquema:Challenge",
+          "esquema:AuditEvent",
+          "funcao:transaction",
+          "funcao:reserveOccupation",
+          "evento:appointment.changed"
+        ],
+        "consome": [],
+        "requisitos": [
+          "R1",
+          "R6",
+          "R7",
+          "R19",
+          "R20"
+        ]
+      },
+      {
+        "id": "notifications-automation",
+        "dono": "rpa",
+        "estado": "planejado",
+        "responsabilidade": "Adaptador de desafio, outbox e lembretes reais; idempotência, timeout e retries limitados.",
+        "arquivos": [
+          "automation/**",
+          "jobs/**",
+          "tests/rpa/**"
+        ],
+        "prove": [
+          "funcao:sendChallenge",
+          "evento:notification.delivered"
+        ],
+        "consome": [
+          "evento:appointment.changed",
+          "esquema:Appointment"
+        ],
+        "requisitos": [
+          "R2",
+          "R4",
+          "R7",
+          "R20"
+        ]
+      },
+      {
+        "id": "infra",
+        "dono": "devops",
+        "estado": "planejado",
+        "responsabilidade": "CI, builds, HTTPS, PostgreSQL, backups restauráveis, deploy e URL pública após autorização e acesso.",
+        "arquivos": [
+          "infra/**",
+          "tools/**",
+          ".github/**",
+          "tests/devops/**"
+        ],
+        "prove": [
+          "comando:build",
+          "comando:deploy",
+          "comando:restore-check"
+        ],
+        "consome": [
+          "GET /api/health"
+        ],
+        "requisitos": [
+          "R2",
+          "R5",
+          "R6",
+          "R7"
+        ]
+      }
+    ],
+    "testes": [
+      {
+        "arquivo": "tests/arquitetura/bootstrap.test.mjs",
+        "estado": "implementado",
+        "requisitos": [
+          "R7"
+        ],
+        "limite": "Prova somente o bootstrap e consistência básica do contrato, não os requisitos funcionais do produto."
+      }
+    ],
+    "documentacao": {
+      "arquivos": [
+        "docs/ARQUITETURA.md",
+        "docs/contrato-api.json",
+        "docs/PESQUISA.md",
+        "docs/PESQUISA-COMPLEMENTAR.md"
+      ],
+      "requisitos": [
+        "R1",
+        "R8",
+        "R9"
+      ]
+    },
+    "interfacesInternas": [
+      {
+        "id": "funcao:transaction",
+        "entrada": "callback(tx)",
+        "saida": "Promise do retorno do callback; commit ou rollback atômico"
+      },
+      {
+        "id": "funcao:reserveOccupation",
+        "entrada": "tx, {staffId, startAt, endAt, appointmentId|null, blockId|null}",
+        "saida": "Promise<occupationId>; nunca executa fora da transação do chamador; conflito tipado SLOT_CONFLICT"
+      },
+      {
+        "id": "funcao:sendChallenge",
+        "entrada": "{challengeId, destination, code, expiresAt}; dados sensíveis somente em memória no envio",
+        "saida": "Promise<{providerMessageId}>; falha tipada PROVIDER_UNAVAILABLE; sem log do código"
+      },
+      {
+        "id": "evento:appointment.changed",
+        "entrada": "outbox {eventId, appointmentId, version, kind:created|rescheduled|cancelled}",
+        "saida": "Consumido após commit; no máximo 3 retries com backoff, depois dead-letter sem excluir registro"
+      }
+    ]
+  },
+  "rastreabilidade": {
+    "namespace": "Requisitos R1..R20 do bloco Modelo do sistema/estado compartilhado, distintos da matriz de homologação R1..R40 exibida no pedido.",
+    "homologacao": "A matriz extensa contém 249 itens omitidos e outra numeração. Não inferir IDs. Obter exportação integral do Studio antes de construir rastreabilidade final requisito por requisito.",
+    "criteriosPrevistos": [
+      "dois clientes diferentes não leem reservas alheias",
+      "telefone conhecido não concede sessão",
+      "reserva concorrente mesmo barbeiro gera apenas um sucesso",
+      "barbeiros diferentes podem reservar mesmo intervalo",
+      "fim de um intervalo pode coincidir com início de outro",
+      "bloqueio conflita com reserva em qualquer ordem",
+      "reagendamento em conflito mantém original",
+      "reinício mantém dados",
+      "acessibilidade e tela 375px",
+      "HTML offline com rede bloqueada e sem recursos externos"
+    ]
+  },
+  "pendencias": [
+    "Health responde 503 (database: unavailable) quando o banco não abre; nenhuma rota de negócio responde sem banco real.",
+    "Provedor de prova de posse ainda não selecionado/configurado",
+    "Nenhuma URL pública nem deploy",
+    "HTML operacional e app-autonomo.html pendentes da frente frontend",
+    "Matriz integral de homologação indisponível no pedido truncado",
+    "Executor final do Studio só pode homologar após integração"
+  ],
+  "evidencias": [
+    {
+      "verificacao": "npm install --package-lock-only --ignore-scripts",
+      "status": "APROVADO",
+      "resultado": "Lockfile gerado; audit informou 0 vulnerabilidades para 1 pacote raiz sem dependências externas."
+    },
+    {
+      "verificacao": "npm test",
+      "status": "APROVADO",
+      "resultado": "5 testes; 5 aprovados; 0 falhas."
+    },
+    {
+      "verificacao": "npm run check",
+      "status": "APROVADO",
+      "resultado": "Sintaxe dos 3 arquivos JavaScript verificada; não é lint/build do produto."
+    },
+    {
+      "verificacao": "Studio qa-rodar-testes",
+      "status": "APROVADO",
+      "resultado": "Executor independente executou npm test --silent, código 0, pass 5, fail 0."
+    },
+    {
+      "verificacao": "Studio seg-varrer-segredos",
+      "status": "APROVADO",
+      "resultado": "9 arquivos analisados; 0 achados. Resultado do scanner não equivale a auditoria integral."
+    },
+    {
+      "verificacao": "Studio qa-testes-ausentes",
+      "status": "APROVADO",
+      "resultado": "1 de 1 módulo citado em 1 arquivo de testes."
+    },
+    {
+      "verificacao": "Studio devops-estado-git",
+      "status": "APROVADO",
+      "resultado": "master; sem remotos; sem tag; 6 entradas pendentes agrupadas na execução; nenhum commit ou push realizado."
+    },
+    {
+      "verificacao": "Studio backend-mapear-rotas",
+      "status": "NAO_APLICAVEL",
+      "resultado": "Scanner não reconheceu rota no HTTP nativo; GET /api/health é comprovada pelos testes HTTP reais, não por este scanner."
+    },
+    {
+      "verificacao": "Studio devops-verificar-lockfile",
+      "status": "NAO_APLICAVEL",
+      "resultado": "package.json sem dependências; lockfile foi gerado pelo npm."
+    },
+    {
+      "verificacao": "Studio frontend-integracao-api",
+      "status": "NAO_APLICAVEL",
+      "resultado": "Não existe frontend nesta etapa."
+    },
+    {
+      "verificacao": "Studio dados-validar-sql",
+      "status": "NAO_APLICAVEL",
+      "resultado": "Não existe SQL nesta etapa; schema PostgreSQL ainda é contrato, não migração validada."
+    }
+  ]
+}

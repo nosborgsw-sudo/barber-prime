@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0c">
+  <meta name="description" content="Barber Prime — agende seu corte e barba com o barbeiro de sua preferência.">
+  <title>Barber Prime — Agendamento</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-mode="api">
+  <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-logo" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15 31c3-1 6-4 9-9m9 9c-3-1-6-4-9-9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="14" cy="33" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="34" cy="33" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M17 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M7 3.5h3l1.5 4-2 1.3a10 10 0 0 0 5.7 5.7l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.7a2 2 0 0 1 2-2.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6.5" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6.5" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.6 8.4 20 17M8.6 15.6 20 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8.5a.5.5 0 0 1-.5.5H15v-6H9v6H4.5a.5.5 0 0 1-.5-.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4.8" cy="6.5" r="1" fill="currentColor"/><circle cx="4.8" cy="12" r="1" fill="currentColor"/><circle cx="4.8" cy="17.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <!-- BP:DEMO-BANNER -->
+
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Barber Prime, página inicial">
+      <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+      <span class="brand-name" id="marca-nome">Barber Prime</span>
+    </a>
+    <nav class="tabs" aria-label="Navegação principal">
+      <a class="tab" href="#inicio" data-nav="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Início</span></a>
+      <a class="tab" href="#agendar" data-nav="agendar"><svg aria-hidden="true"><use href="#i-cal"/></svg><span>Agendar</span></a>
+      <a class="tab" href="#reservas" data-nav="reservas"><svg aria-hidden="true"><use href="#i-list"/></svg><span>Minhas reservas</span></a>
+      <a class="tab" href="#equipe" data-nav="equipe"><svg aria-hidden="true"><use href="#i-lock"/></svg><span>Equipe</span></a>
+    </nav>
+    <div class="session" id="sessao" hidden>
+      <span class="session-name" id="sessao-nome"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="sair">Sair</button>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <!-- INÍCIO -->
+    <section class="view" id="view-inicio" data-view="inicio" aria-labelledby="titulo-inicio">
+      <div class="hero">
+        <div class="hero-inner">
+          <p class="eyebrow">Barbearia premium</p>
+          <h1 id="titulo-inicio"><span id="hero-nome">Barber Prime</span></h1>
+          <p class="hero-lead">Corte, barba e acabamento com hora marcada. Serviço, barbeiro e horário em poucos toques.</p>
+          <div class="hero-actions">
+            <a class="btn btn-gold btn-lg" href="#agendar" id="cta-agendar"><svg aria-hidden="true"><use href="#i-cal"/></svg>Agendar horário</a>
+            <a class="btn btn-ghost btn-lg" href="#reservas">Minhas reservas</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="inicio-status" role="status" aria-live="polite"></div>
+
+      <section class="block" aria-labelledby="titulo-barbeiros">
+        <div class="block-head">
+          <h2 id="titulo-barbeiros">Nossos barbeiros</h2>
+          <p class="muted">Quatro profissionais, cada um com sua especialidade.</p>
+        </div>
+        <ul class="grid grid-barbers" id="lista-barbeiros" aria-busy="true"></ul>
+      </section>
+
+      <section class="block" aria-labelledby="titulo-servicos">
+        <div class="block-head">
+          <h2 id="titulo-servicos">Serviços</h2>
+          <p class="muted">Preço e duração de cada atendimento.</p>
+        </div>
+        <ul class="grid grid-services" id="lista-servicos" aria-busy="true"></ul>
+      </section>
+
+      <section class="block info-grid" aria-label="Horário e contato">
+        <article class="card">
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-clock"/></svg>Horário de funcionamento</h2>
+          <dl class="hours" id="horario-funcionamento"></dl>
+        </article>
+        <article class="card">
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-pin"/></svg>Localização e contato</h2>
+          <p id="contato-endereco" class="contact-line"></p>
+          <p id="contato-telefone" class="contact-line"></p>
+          <a class="btn btn-gold" href="#agendar">Agendar horário</a>
+        </article>
+      </section>
+    </section>
+
+    <!-- AGENDAR -->
+    <section class="view" id="view-agendar" data-view="agendar" aria-labelledby="titulo-agendar" hidden>
+      <div class="page-head">
+        <h1 id="titulo-agendar" tabindex="-1">Agendar horário</h1>
+        <ol class="stepper" aria-label="Etapas do agendamento">
+          <li data-step="1">Serviço</li><li data-step="2">Barbeiro</li><li data-step="3">Horário</li><li data-step="4">Confirmar</li>
+        </ol>
+      </div>
+
+      <form id="form-agendar" class="booking" novalidate>
+        <fieldset class="step" id="passo-servico">
+          <legend><span class="step-n">1</span>Escolha o serviço</legend>
+          <div class="choices" id="agendar-servicos" aria-busy="true"></div>
+          <p class="field-error" id="erro-servico" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-barbeiro">
+          <legend><span class="step-n">2</span>Escolha o barbeiro</legend>
+          <div class="choices choices-barbers" id="agendar-barbeiros" aria-busy="true"></div>
+          <p class="field-error" id="erro-barbeiro" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-horario">
+          <legend><span class="step-n">3</span>Data e horário</legend>
+          <div id="agendar-calendario" class="calendar"></div>
+          <p class="field-error" id="erro-horario" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-dados">
+          <legend><span class="step-n">4</span>Seus dados</legend>
+          <div id="dados-identificado" class="identified" hidden>
+            <svg aria-hidden="true"><use href="#i-user"/></svg>
+            <p>Agendando como <strong id="dados-nome"></strong>.</p>
+          </div>
+          <div id="dados-cadastro">
+            <p class="muted small">Só pedimos nome e telefone com DDD. Seu telefone não dá acesso às suas reservas: o acesso fica neste aparelho.</p>
+            <div class="field">
+              <label for="cad-nome">Nome</label>
+              <input id="cad-nome" name="name" type="text" autocomplete="name" maxlength="100" required aria-describedby="cad-nome-erro">
+              <p class="field-error" id="cad-nome-erro" hidden></p>
+            </div>
+            <div class="field">
+              <label for="cad-telefone">Telefone com DDD</label>
+              <input id="cad-telefone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="16" placeholder="(11) 91234-5678" required aria-describedby="cad-telefone-erro">
+              <p class="field-error" id="cad-telefone-erro" hidden></p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="agendar-obs">Observação <span class="muted">(opcional)</span></label>
+            <textarea id="agendar-obs" name="notes" maxlength="500" rows="2"></textarea>
+          </div>
+        </fieldset>
+
+        <aside class="summary card" aria-labelledby="titulo-resumo">
+          <h2 id="titulo-resumo" class="card-title">Resumo</h2>
+          <dl class="summary-list" id="resumo"></dl>
+          <p class="form-error" id="agendar-erro" role="alert" hidden></p>
+          <button type="submit" class="btn btn-gold btn-lg btn-block" id="agendar-confirmar">Confirmar agendamento</button>
+        </aside>
+      </form>
+
+      <div class="card success" id="agendar-sucesso" tabindex="-1" hidden>
+        <svg class="success-icon" aria-hidden="true"><use href="#i-check"/></svg>
+        <h2>Horário reservado!</h2>
+        <p id="sucesso-detalhe"></p>
+        <div class="row">
+          <a class="btn btn-gold" href="#reservas">Ver minhas reservas</a>
+          <button type="button" class="btn btn-ghost" id="agendar-novo">Fazer outro agendamento</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINHAS RESERVAS -->
+    <section class="view" id="view-reservas" data-view="reservas" aria-labelledby="titulo-reservas" hidden>
+      <div class="page-head">
+        <h1 id="titulo-reservas" tabindex="-1">Minhas reservas</h1>
+      </div>
+      <div id="reservas-anonimo" hidden>
+        <div class="card">
+          <p>Suas reservas ficam ligadas a este aparelho. Ainda não encontramos uma sessão de cliente aqui.</p>
+          <a class="btn btn-gold" href="#agendar">Agendar horário</a>
+        </div>
+        <form class="card" id="form-recuperar" novalidate>
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-lock"/></svg>Recuperar acesso em outro aparelho</h2>
+          <p class="muted small">Enviaremos um código de 6 dígitos ao telefone cadastrado. Informar o número sozinho não dá acesso a nenhuma reserva.</p>
+          <div class="field">
+            <label for="rec-telefone">Telefone com DDD</label>
+            <input id="rec-telefone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="16" placeholder="(11) 91234-5678" required aria-describedby="rec-telefone-erro">
+            <p class="field-error" id="rec-telefone-erro" hidden></p>
+          </div>
+          <button type="submit" class="btn btn-ghost" id="rec-enviar">Enviar código</button>
+          <div id="rec-codigo-bloco" hidden>
+            <p class="status" id="rec-mensagem" role="status"></p>
+            <div class="field">
+              <label for="rec-codigo">Código recebido</label>
+              <input id="rec-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" aria-describedby="rec-codigo-erro">
+              <p class="field-error" id="rec-codigo-erro" hidden></p>
+            </div>
+            <button type="button" class="btn btn-gold" id="rec-verificar">Confirmar código</button>
+          </div>
+          <p class="form-error" id="rec-erro" role="alert" hidden></p>
+        </form>
+      </div>
+      <div id="reservas-cliente" hidden>
+        <div class="toolbar">
+          <label class="inline-field" for="reservas-periodo">Período
+            <select id="reservas-periodo">
+              <option value="proximas">Próximos 31 dias</option>
+              <option value="anteriores">Últimos 31 dias</option>
+            </select>
+          </label>
+          <a class="btn btn-gold btn-sm" href="#agendar">Novo agendamento</a>
+        </div>
+        <p class="status" id="reservas-status" role="status" aria-live="polite"></p>
+        <ul class="appt-list" id="lista-reservas"></ul>
+      </div>
+    </section>
+
+    <!-- EQUIPE -->
+    <section class="view" id="view-equipe" data-view="equipe" aria-labelledby="titulo-equipe" hidden>
+      <div class="page-head">
+        <h1 id="titulo-equipe" tabindex="-1">Área da equipe</h1>
+      </div>
+      <form class="card narrow" id="form-equipe-login" novalidate>
+        <h2 class="card-title"><svg aria-hidden="true"><use href="#i-lock"/></svg>Entrar</h2>
+        <p class="muted small" id="equipe-login-ajuda">Acesso para barbeiros e administração.</p>
+        <div class="field">
+          <label for="equipe-login">Login</label>
+          <input id="equipe-login" name="login" type="text" autocomplete="username" maxlength="100" required aria-describedby="equipe-login-erro">
+          <p class="field-error" id="equipe-login-erro" hidden></p>
+        </div>
+        <div class="field">
+          <label for="equipe-senha">Senha</label>
+          <input id="equipe-senha" name="password" type="password" autocomplete="current-password" maxlength="128" required aria-describedby="equipe-senha-erro">
+          <p class="field-error" id="equipe-senha-erro" hidden></p>
+        </div>
+        <p class="form-error" id="equipe-erro" role="alert" hidden></p>
+        <button type="submit" class="btn btn-gold btn-block" id="equipe-entrar">Entrar</button>
+      </form>
+
+      <div id="painel" hidden>
+        <div class="panel-tabs" role="tablist" aria-label="Seções do painel">
+          <button type="button" role="tab" class="ptab" id="ptab-agenda" aria-controls="painel-agenda" aria-selected="true">Agenda</button>
+          <button type="button" role="tab" class="ptab" id="ptab-servicos" aria-controls="painel-servicos" aria-selected="false" data-admin>Serviços</button>
+          <button type="button" role="tab" class="ptab" id="ptab-barbeiros" aria-controls="painel-barbeiros" aria-selected="false" data-admin>Barbeiros</button>
+          <button type="button" role="tab" class="ptab" id="ptab-expediente" aria-controls="painel-expediente" aria-selected="false" data-admin>Expediente</button>
+          <button type="button" role="tab" class="ptab" id="ptab-bloqueios" aria-controls="painel-bloqueios" aria-selected="false" data-admin>Bloqueios</button>
+          <button type="button" role="tab" class="ptab" id="ptab-barbearia" aria-controls="painel-barbearia" aria-selected="false" data-admin>Barbearia</button>
+        </div>
+
+        <div class="ppanel" id="painel-agenda" role="tabpanel" aria-labelledby="ptab-agenda">
+          <div class="toolbar">
+            <button type="button" class="btn btn-icon" id="agenda-anterior" aria-label="Dia anterior"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
+            <label class="inline-field" for="agenda-data">Dia <input type="date" id="agenda-data"></label>
+            <button type="button" class="btn btn-icon" id="agenda-proximo" aria-label="Próximo dia"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
+            <button type="button" class="btn btn-ghost btn-sm" id="agenda-hoje">Hoje</button>
+          </div>
+          <h2 class="agenda-day" id="agenda-titulo"></h2>
+          <p class="status" id="agenda-status" role="status" aria-live="polite"></p>
+          <div class="agenda" id="agenda-colunas"></div>
+        </div>
+
+        <div class="ppanel" id="painel-servicos" role="tabpanel" aria-labelledby="ptab-servicos" hidden>
+          <form class="card" id="form-servico" novalidate>
+            <h2 class="card-title" id="servico-form-titulo">Novo serviço</h2>
+            <input type="hidden" id="servico-id">
+            <div class="form-row">
+              <div class="field">
+                <label for="servico-nome">Nome</label>
+                <input id="servico-nome" name="name" type="text" maxlength="100" required aria-describedby="servico-nome-erro">
+                <p class="field-error" id="servico-nome-erro" hidden></p>
+              </div>
+              <div class="field">
+                <label for="servico-duracao">Duração (min)</label>
+                <input id="servico-duracao" name="durationMinutes" type="number" min="5" max="480" step="5" required aria-describedby="servico-duracao-erro">
+                <p class="field-error" id="servico-duracao-erro" hidden></p>
+              </div>
+              <div class="field">
+                <label for="servico-preco">Preço (R$)</label>
+                <input id="servico-preco" name="priceCents" type="text" inputmode="decimal" placeholder="60,00" required aria-describedby="servico-preco-erro">
+                <p class="field-error" id="servico-preco-erro" hidden></p>
+              </div>
+            </div>
+            <p class="form-error" id="servico-erro" role="alert" hidden></p>
+            <div class="row">
+              <button type="submit" class="btn btn-gold" id="servico-salvar">Salvar serviço</button>
+              <button type="button" class="btn btn-ghost" id="servico-cancelar" hidden>Cancelar edição</button>
+            </div>
+          </form>
+          <ul class="admin-list" id="admin-servicos"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-barbeiros" role="tabpanel" aria-labelledby="ptab-barbeiros" hidden>
+          <p class="status" id="barbeiros-status" role="status" aria-live="polite"></p>
+          <ul class="admin-list" id="admin-barbeiros"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-expediente" role="tabpanel" aria-labelledby="ptab-expediente" hidden>
+          <form class="card" id="form-expediente" novalidate>
+            <div class="field">
+              <label for="expediente-barbeiro">Barbeiro</label>
+              <select id="expediente-barbeiro"></select>
+            </div>
+            <div class="week" id="expediente-dias"></div>
+            <p class="form-error" id="expediente-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="expediente-salvar">Salvar expediente</button>
+          </form>
+        </div>
+
+        <div class="ppanel" id="painel-bloqueios" role="tabpanel" aria-labelledby="ptab-bloqueios" hidden>
+          <form class="card" id="form-bloqueio" novalidate>
+            <h2 class="card-title">Bloquear horário</h2>
+            <div class="form-row">
+              <div class="field">
+                <label for="bloqueio-barbeiro">Barbeiro</label>
+                <select id="bloqueio-barbeiro"></select>
+              </div>
+              <div class="field">
+                <label for="bloqueio-data">Data</label>
+                <input id="bloqueio-data" type="date" required>
+              </div>
+              <div class="field">
+                <label for="bloqueio-inicio">Início</label>
+                <input id="bloqueio-inicio" type="time" step="900" required>
+              </div>
+              <div class="field">
+                <label for="bloqueio-fim">Fim</label>
+                <input id="bloqueio-fim" type="time" step="900" required aria-describedby="bloqueio-fim-erro">
+                <p class="field-error" id="bloqueio-fim-erro" hidden></p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="bloqueio-motivo">Motivo <span class="muted">(interno, opcional)</span></label>
+              <input id="bloqueio-motivo" type="text" maxlength="200">
+            </div>
+            <p class="form-error" id="bloqueio-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="bloqueio-salvar">Bloquear</button>
+          </form>
+          <ul class="admin-list" id="admin-bloqueios"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-barbearia" role="tabpanel" aria-labelledby="ptab-barbearia" hidden>
+          <form class="card" id="form-barbearia" novalidate>
+            <div class="field">
+              <label for="barbearia-nome">Nome da barbearia</label>
+              <input id="barbearia-nome" type="text" maxlength="100" required>
+            </div>
+            <div class="field">
+              <label for="barbearia-endereco">Endereço</label>
+              <input id="barbearia-endereco" type="text" maxlength="300">
+            </div>
+            <div class="field">
+              <label for="barbearia-telefone">Telefone de contato</label>
+              <input id="barbearia-telefone" name="contactPhone" type="tel" inputmode="tel" maxlength="16" aria-describedby="barbearia-telefone-erro">
+              <p class="field-error" id="barbearia-telefone-erro" hidden></p>
+            </div>
+            <p class="form-error" id="barbearia-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="barbearia-salvar">Salvar dados</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><span id="rodape-nome">Barber Prime</span> · <span id="rodape-endereco"></span></p>
+  </footer>
+
+  <div class="toasts" id="avisos" role="status" aria-live="polite"></div>
+
+  <!-- BP:SCRIPTS:BEGIN -->
+  <script src="core.js" defer></script>
+  <script src="api.js" defer></script>
+  <script src="app.js" defer></script>
+  <!-- BP:SCRIPTS:END -->
+</body>
+</html>

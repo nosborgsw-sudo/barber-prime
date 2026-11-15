@@ -1,0 +1,11 @@
+# Mantém atualizados os SHAs fixados das ações e as dependências npm (abre PR; nada é aplicado sozinho).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly

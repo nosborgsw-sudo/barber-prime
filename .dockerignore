@@ -1,0 +1,14 @@
+# Contexto mínimo para o "docker build": nada de dependências locais, banco local, segredos ou saídas de build.
+.git
+.github
+.homologacao
+.claude
+node_modules
+data
+dist
+tests
+docs
+*.log
+.env
+.env.*
+!.env.example

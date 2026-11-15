@@ -1,0 +1,69 @@
+{
+  "shop": {
+    "name": "Barber Prime",
+    "timezone": "America/Sao_Paulo",
+    "address": "Rua Exemplo, 100 - Centro, São Paulo - SP"
+  },
+  "appointments": [
+    {
+      "id": "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b",
+      "startAt": "2026-11-17T12:00:00.000Z",
+      "endAt": "2026-11-17T12:45:00.000Z",
+      "durationMinutes": 45,
+      "priceCents": 6000,
+      "status": "confirmed",
+      "notes": "Degradê baixo; usar máquina 1, depois tesoura",
+      "version": 1,
+      "staffName": "Rafael Souza",
+      "serviceName": "Corte masculino",
+      "customerName": "Cliente Exemplo A"
+    },
+    {
+      "id": "7a2d3b8f-4c5e-4f60-9b0c-1d2e3f4a5b6c",
+      "startAt": "2026-11-17T13:00:00.000Z",
+      "endAt": "2026-11-17T13:30:00.000Z",
+      "durationMinutes": 30,
+      "priceCents": 4000,
+      "status": "cancelled",
+      "notes": "",
+      "version": 3,
+      "staffName": "Rafael Souza",
+      "serviceName": "Barba completa",
+      "customerName": "Cliente Exemplo B"
+    },
+    {
+      "id": "8b3e4c90-5d6f-4071-8c1d-2e3f4a5b6c7d",
+      "startAt": "2026-11-17T14:00:00.000Z",
+      "endAt": "2026-11-17T15:15:00.000Z",
+      "durationMinutes": 75,
+      "priceCents": 9500,
+      "status": "confirmed",
+      "notes": "",
+      "version": 2,
+      "staffName": "Bruno Lima",
+      "serviceName": "Corte + barba",
+      "customerName": "Cliente Exemplo C"
+    },
+    {
+      "id": "9c4f5da1-6e70-4182-9d2e-3f4a5b6c7d8e",
+      "startAt": "2026-11-18T19:00:00.000Z",
+      "endAt": "2026-11-18T19:30:00.000Z",
+      "durationMinutes": 30,
+      "priceCents": 3500,
+      "status": "completed",
+      "notes": "",
+      "version": 1,
+      "staffName": "Bruno Lima",
+      "serviceName": "Sobrancelha",
+      "customerName": "Cliente Exemplo D"
+    },
+    {
+      "id": "registro-invalido",
+      "startAt": "2026-11-18T10:00:00.000Z",
+      "endAt": "2026-11-18T09:00:00.000Z",
+      "status": "confirmed",
+      "staffName": "Diego Alves",
+      "serviceName": "Corte masculino"
+    }
+  ]
+}

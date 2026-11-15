@@ -1,0 +1,2768 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0c">
+  <meta name="description" content="Barber Prime — agende seu corte e barba com o barbeiro de sua preferência.">
+  <title>DEMONSTRAÇÃO — Barber Prime — Agendamento</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <style>
+/* Barber Prime — tema escuro premium, mobile first. */
+:root {
+  --bg: #0b0b0c;
+  --graphite: #151619;
+  --surface: #1c1e22;
+  --surface-2: #24262b;
+  --line: #2e3138;
+  --text: #ece8e1;
+  --muted: #a8a39b;
+  --gold: #c9a54c;
+  --gold-soft: #e2c77f;
+  --gold-dim: rgba(201, 165, 76, 0.14);
+  --gold-line: rgba(201, 165, 76, 0.32);
+  --gold-strong: rgba(201, 165, 76, 0.5);
+  --on-gold: #15120a;
+  --faint: #6b6e76;
+  --glass: rgba(15, 16, 18, 0.95);
+  --danger: #f08a7e;
+  --danger-line: rgba(240, 138, 126, 0.4);
+  --danger-dim: rgba(240, 138, 126, 0.08);
+  /* Fundos opacos (tom sobre --surface) para ícones e avisos: contraste calculável, sem depender de transparência. */
+  --gold-tint: #343128;
+  --danger-tint: #2d2729;
+  --ok: #8fcf9c;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.85rem;
+  --fs-md: 0.95rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.1rem;
+  --fs-xl: 1.35rem;
+  --fs-2xl: 1.5rem;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Cormorant Garamond", "Playfair Display", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --tabbar: 64px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.55 var(--font-sans);
+  padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+}
+img, svg { display: block; max-width: 100%; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.2; font-weight: 600; }
+h1 { font-family: var(--font-display); font-size: clamp(2rem, 7vw, 3.4rem); letter-spacing: 0.01em; }
+h2 { font-size: var(--fs-lg); letter-spacing: 0.02em; }
+p { margin: 0 0 0.8em; }
+a { color: var(--gold-soft); }
+.muted { color: var(--muted); }
+.small { font-size: var(--fs-sm); }
+[hidden] { display: none !important; }
+
+:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 3px; border-radius: 6px; }
+
+.skip { position: absolute; left: -999px; top: 8px; background: var(--gold); color: var(--on-gold); padding: 8px 14px; border-radius: 8px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+.demo-banner {
+  position: relative; z-index: 60;
+  background: repeating-linear-gradient(135deg, #3a2f12 0 12px, #2c240f 12px 24px);
+  color: #f4e3b5; text-align: center; font-size: var(--fs-sm); padding: 6px 12px; border-bottom: 1px solid var(--gold);
+}
+.demo-banner strong { letter-spacing: 0.12em; }
+.demo-banner button { margin-left: 8px; }
+
+/* Barra superior + barra de abas inferior no celular */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+}
+/* Desfoque num pseudo-elemento: backdrop-filter na própria barra faria dela o bloco de contenção
+   da barra de abas fixa, que deixaria de ficar no rodapé e cobriria o botão Sair. */
+.topbar::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--glass); backdrop-filter: blur(10px);
+}
+body[data-mode="demo"] .brand-name::after { content: " · demo"; color: var(--gold); font-size: 0.7em; letter-spacing: 0.1em; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.brand-mark { width: 34px; height: 34px; color: var(--gold); }
+.brand-name { font-family: var(--font-display); font-size: var(--fs-xl); letter-spacing: 0.16em; text-transform: uppercase; }
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  height: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--glass); border-top: 1px solid var(--line);
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--muted); text-decoration: none; font-size: var(--fs-xs); letter-spacing: 0.02em;
+  transition: color 0.2s var(--ease);
+}
+.tab svg { width: 22px; height: 22px; }
+.tab[aria-current="page"] { color: var(--gold); }
+.tab:hover { color: var(--text); }
+.session { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.session-name { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 32vw; }
+
+main { display: block; width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 16px 32px; outline: none; }
+.view { animation: fade-in 0.35s var(--ease); }
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Hero */
+.hero {
+  position: relative; margin: 16px -16px 0; padding: 56px 20px 48px; overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 85% 0%, var(--gold-dim), transparent 60%),
+    linear-gradient(160deg, var(--graphite) 0%, #0b0b0c 70%);
+  border-bottom: 1px solid var(--line);
+}
+.hero::after {
+  content: ""; position: absolute; inset: auto -40px -60px auto; width: 240px; height: 240px;
+  border: 1px solid var(--gold-line); border-radius: 50%;
+}
+.hero-inner { position: relative; z-index: 1; max-width: 640px; }
+.eyebrow { color: var(--gold); text-transform: uppercase; letter-spacing: 0.3em; font-size: var(--fs-xs); margin-bottom: 10px; }
+.hero h1 { text-transform: uppercase; letter-spacing: 0.08em; }
+.hero-lead { color: var(--muted); font-size: var(--fs-lg); max-width: 46ch; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+
+/* Botões */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font: 600 0.95rem/1 var(--font-sans);
+  text-decoration: none; cursor: pointer; letter-spacing: 0.02em;
+  transition: transform 0.18s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.btn svg { width: 18px; height: 18px; }
+.btn:hover { border-color: var(--gold); }
+.btn:active { transform: scale(0.98); }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.btn-gold { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: var(--on-gold); border-color: transparent; box-shadow: 0 6px 18px var(--gold-line); }
+.btn-gold:hover { box-shadow: 0 8px 24px var(--gold-line); border-color: transparent; }
+.btn-ghost { background: transparent; }
+.btn-danger { background: transparent; color: var(--danger); border-color: var(--danger-line); }
+.btn-lg { min-height: 52px; padding: 14px 24px; font-size: var(--fs-base); }
+.btn-sm { min-height: 36px; padding: 6px 14px; font-size: var(--fs-sm); }
+.btn-icon { width: 44px; padding: 0; border-radius: 50%; }
+.btn-block { width: 100%; }
+.btn.is-loading { position: relative; color: transparent; pointer-events: none; }
+.btn.is-loading::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: currentColor; color: var(--on-gold); animation: spin 0.8s linear infinite;
+}
+.btn-ghost.is-loading::after { color: var(--gold); border-color: rgba(255, 255, 255, 0.15); border-top-color: var(--gold); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Blocos e cartões */
+.block { margin-top: 40px; }
+.block-head { margin-bottom: 16px; }
+.grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.grid-barbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-services { grid-template-columns: 1fr; }
+.card {
+  background: linear-gradient(180deg, var(--surface), var(--graphite));
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+  box-shadow: var(--shadow);
+}
+.card-title { display: flex; align-items: center; gap: 10px; font-size: var(--fs-lg); }
+.card-title svg { width: 20px; height: 20px; color: var(--gold); flex: none; }
+.narrow { max-width: 440px; margin: 0 auto; }
+.barber { text-align: center; padding: 20px 12px; transition: transform 0.25s var(--ease), border-color 0.25s var(--ease); }
+.barber:hover { transform: translateY(-3px); border-color: var(--gold-strong); }
+.avatar {
+  width: 68px; height: 68px; margin: 0 auto 12px; border-radius: 50%;
+  display: grid; place-items: center; font-family: var(--font-display); font-size: var(--fs-2xl); color: var(--gold-soft);
+  background: radial-gradient(circle at 30% 25%, var(--line), var(--graphite)); border: 1px solid var(--gold-strong);
+}
+.barber h3 { font-size: var(--fs-base); margin-bottom: 4px; }
+.barber p { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+.service { display: flex; align-items: center; gap: 14px; }
+.service-icon { width: 40px; height: 40px; flex: none; padding: 9px; border-radius: 12px; color: var(--gold); background: var(--gold-tint); }
+.service-body { flex: 1; min-width: 0; }
+.service-body h3 { font-size: var(--fs-base); margin: 0; }
+.service-body p { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-sm); }
+.service-meta { text-align: right; white-space: nowrap; }
+.price { display: block; color: var(--gold-soft); font-weight: 700; font-size: var(--fs-lg); }
+.duration { color: var(--muted); font-size: var(--fs-sm); }
+.info-grid { display: grid; gap: 14px; }
+.hours { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
+.hours dt { color: var(--muted); }
+.hours dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.contact-line { display: flex; gap: 8px; align-items: flex-start; }
+.contact-line svg { width: 18px; height: 18px; flex: none; margin-top: 3px; color: var(--gold); }
+
+/* Estados */
+.status:empty { display: none; }
+.status { color: var(--muted); padding: 10px 0; }
+.empty { color: var(--muted); text-align: center; padding: 28px 12px; border: 1px dashed var(--line); border-radius: var(--radius); }
+.error-box { color: var(--danger); background: var(--danger-tint); border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 12px 14px; }
+.skeleton { min-height: 96px; border-radius: var(--radius); background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Páginas internas */
+.page-head { padding: 24px 0 8px; }
+.page-head h1 { font-size: clamp(1.7rem, 6vw, 2.4rem); outline: none; }
+.stepper { list-style: none; display: flex; gap: 6px; padding: 0; margin: 8px 0 0; counter-reset: s; }
+.stepper li { flex: 1; font-size: var(--fs-xs); color: var(--muted); text-align: center; padding-top: 8px; border-top: 3px solid var(--line); transition: border-color 0.3s var(--ease), color 0.3s var(--ease); }
+.stepper li.done, .stepper li.current { border-color: var(--gold); color: var(--text); }
+
+/* Formulário de agendamento */
+.booking { display: grid; gap: 16px; }
+.step { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 0; background: var(--graphite); min-width: 0; }
+.step legend { display: flex; align-items: center; gap: 10px; font-weight: 600; padding: 0 6px; }
+.step-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: var(--fs-sm); color: var(--on-gold); background: var(--gold); }
+.choices { display: grid; gap: 10px; }
+.choices-barbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice { position: relative; display: block; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice-box {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); background: var(--surface); transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.choices-barbers .choice-box { flex-direction: column; text-align: center; padding: 14px 8px; }
+.choice-box .avatar { width: 48px; height: 48px; font-size: var(--fs-lg); margin: 0; }
+.choice input:checked + .choice-box { border-color: var(--gold); background: linear-gradient(180deg, var(--gold-dim), var(--gold-dim)); }
+.choice input:focus-visible + .choice-box { outline: 2px solid var(--gold-soft); outline-offset: 2px; }
+.choice input:disabled + .choice-box { opacity: 0.45; cursor: not-allowed; }
+.choice-title { font-weight: 600; }
+.choice-sub { color: var(--muted); font-size: var(--fs-sm); }
+.choice-end { margin-left: auto; text-align: right; }
+
+/* Calendário: dias + horários, números grandes e alto contraste */
+.calendar-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.calendar-month { font-weight: 600; text-transform: capitalize; }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day .choice-box { flex-direction: column; gap: 0; padding: 8px 2px; text-align: center; min-height: 64px; justify-content: center; }
+.day-wd { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.day-n { font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.day-closed .day-n { color: var(--faint); text-decoration: line-through; }
+.slots-title { margin: 16px 0 8px; font-size: var(--fs-md); text-transform: capitalize; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.slot .choice-box { justify-content: center; padding: 10px 4px; font-size: var(--fs-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Campos */
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+label { font-weight: 600; font-size: var(--fs-md); }
+input, select, textarea {
+  width: 100%; min-height: 46px; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); background: var(--graphite); color: var(--text); font: inherit;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+input:focus, select:focus, textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); outline: none; }
+input[aria-invalid="true"] { border-color: var(--danger); }
+input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--gold); }
+.field-error, .form-error { color: var(--danger); font-size: var(--fs-sm); margin: 0; }
+.form-error { padding: 10px 0; }
+.form-row { display: grid; gap: 0 12px; }
+.inline-field { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.inline-field input, .inline-field select { width: auto; }
+.identified { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-sm); background: var(--gold-dim); margin-bottom: 14px; }
+.identified svg { width: 22px; height: 22px; color: var(--gold); }
+.identified p { margin: 0; }
+
+.summary { position: sticky; bottom: calc(var(--tabbar) + 8px); z-index: 5; }
+.summary-list { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 12px; }
+.summary-list dt { color: var(--muted); }
+.summary-list dd { margin: 0; text-align: right; }
+.success { text-align: center; margin-top: 16px; animation: pop 0.4s var(--ease); outline: none; }
+.success-icon { width: 56px; height: 56px; margin: 0 auto 8px; color: var(--on-gold); background: var(--gold); border-radius: 50%; padding: 12px; }
+@keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+/* Reservas */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 14px; }
+.appt-list, .admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.appt-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.appt-when { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.appt-meta { color: var(--muted); font-size: var(--fs-md); margin: 4px 0 12px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-xs); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.badge-confirmed { color: var(--gold-soft); border-color: var(--gold-strong); }
+.badge-completed { color: var(--ok); border-color: rgba(143, 207, 156, 0.45); }
+.badge-cancelled, .badge-no_show { color: var(--danger); border-color: var(--danger-line); }
+.appt-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.reschedule { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Painel */
+.panel-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; scrollbar-width: thin; }
+.ptab { flex: none; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 600 0.88rem var(--font-sans); cursor: pointer; transition: all 0.2s var(--ease); }
+.ptab[aria-selected="true"] { color: var(--on-gold); background: var(--gold); border-color: var(--gold); }
+.agenda-day { text-transform: capitalize; font-family: var(--font-display); font-size: var(--fs-2xl); }
+.agenda { display: grid; gap: 14px; }
+.agenda-col { background: var(--graphite); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; min-width: 0; }
+.agenda-col h3 { display: flex; align-items: center; gap: 10px; font-size: var(--fs-base); }
+.agenda-col h3 .avatar { width: 34px; height: 34px; font-size: var(--fs-sm); margin: 0; }
+.agenda-item { border-left: 3px solid var(--gold); background: var(--surface); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; }
+.agenda-item.is-block { border-left-color: var(--faint); }
+.agenda-item.is-cancelled { opacity: 0.6; border-left-color: var(--danger); }
+.agenda-time { font-weight: 700; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.agenda-item p { margin: 2px 0 8px; color: var(--muted); font-size: var(--fs-sm); }
+.admin-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.admin-item .grow { flex: 1 1 180px; min-width: 0; }
+.week { display: grid; gap: 8px; margin-bottom: 12px; }
+.week-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface); }
+.week-row label.day-toggle { display: flex; align-items: center; gap: 10px; }
+.week-row input[type="time"] { width: 112px; }
+
+.toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar) + 16px); z-index: 80; display: grid; gap: 8px; width: min(92vw, 420px); }
+.toast { background: var(--surface-2); border: 1px solid var(--gold); color: var(--text); border-radius: 12px; padding: 12px 16px; box-shadow: var(--shadow); animation: pop 0.3s var(--ease); }
+.toast.is-error { border-color: var(--danger); }
+
+.footer { text-align: center; color: var(--muted); font-size: var(--fs-sm); padding: 24px 16px; border-top: 1px solid var(--line); }
+
+@media (min-width: 560px) {
+  .grid-services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .form-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .slots { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+}
+
+@media (min-width: 900px) {
+  body { padding-bottom: 0; }
+  .tabs { position: static; display: flex; gap: 4px; height: auto; background: none; border: 0; padding: 0; margin-left: auto; }
+  .tab { flex-direction: row; gap: 8px; font-size: var(--fs-md); padding: 10px 14px; border-radius: 999px; }
+  .tab svg { width: 18px; height: 18px; }
+  .tab[aria-current="page"] { background: var(--gold-dim); }
+  .session-name { max-width: 180px; }
+  .hero { margin: 24px 0 0; border-radius: 24px; border: 1px solid var(--line); padding: 88px 56px 80px; }
+  .grid-barbers { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-services { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .info-grid { grid-template-columns: 1fr 1fr; }
+  .booking { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+  .booking .step { grid-column: 1; }
+  .summary { grid-column: 2; grid-row: 1 / span 4; position: sticky; top: 96px; bottom: auto; }
+  .choices-barbers { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .agenda { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .toasts { bottom: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+  </style>
+</head>
+<body data-mode="demo">
+  <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-logo" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15 31c3-1 6-4 9-9m9 9c-3-1-6-4-9-9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="14" cy="33" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="34" cy="33" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M17 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M7 3.5h3l1.5 4-2 1.3a10 10 0 0 0 5.7 5.7l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.7a2 2 0 0 1 2-2.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6.5" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6.5" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.6 8.4 20 17M8.6 15.6 20 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8.5a.5.5 0 0 1-.5.5H15v-6H9v6H4.5a.5.5 0 0 1-.5-.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4.8" cy="6.5" r="1" fill="currentColor"/><circle cx="4.8" cy="12" r="1" fill="currentColor"/><circle cx="4.8" cy="17.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <div class="demo-banner" role="note">
+    <strong>DEMONSTRAÇÃO</strong> — funciona sem internet; os dados ficam só neste navegador e não chegam à barbearia.
+    <button type="button" class="btn btn-ghost btn-sm" id="demo-reset">Apagar dados da demonstração</button>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Barber Prime, página inicial">
+      <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+      <span class="brand-name" id="marca-nome">Barber Prime</span>
+    </a>
+    <nav class="tabs" aria-label="Navegação principal">
+      <a class="tab" href="#inicio" data-nav="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Início</span></a>
+      <a class="tab" href="#agendar" data-nav="agendar"><svg aria-hidden="true"><use href="#i-cal"/></svg><span>Agendar</span></a>
+      <a class="tab" href="#reservas" data-nav="reservas"><svg aria-hidden="true"><use href="#i-list"/></svg><span>Minhas reservas</span></a>
+      <a class="tab" href="#equipe" data-nav="equipe"><svg aria-hidden="true"><use href="#i-lock"/></svg><span>Equipe</span></a>
+    </nav>
+    <div class="session" id="sessao" hidden>
+      <span class="session-name" id="sessao-nome"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="sair">Sair</button>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <!-- INÍCIO -->
+    <section class="view" id="view-inicio" data-view="inicio" aria-labelledby="titulo-inicio">
+      <div class="hero">
+        <div class="hero-inner">
+          <p class="eyebrow">Barbearia premium</p>
+          <h1 id="titulo-inicio"><span id="hero-nome">Barber Prime</span></h1>
+          <p class="hero-lead">Corte, barba e acabamento com hora marcada. Serviço, barbeiro e horário em poucos toques.</p>
+          <div class="hero-actions">
+            <a class="btn btn-gold btn-lg" href="#agendar" id="cta-agendar"><svg aria-hidden="true"><use href="#i-cal"/></svg>Agendar horário</a>
+            <a class="btn btn-ghost btn-lg" href="#reservas">Minhas reservas</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="inicio-status" role="status" aria-live="polite"></div>
+
+      <section class="block" aria-labelledby="titulo-barbeiros">
+        <div class="block-head">
+          <h2 id="titulo-barbeiros">Nossos barbeiros</h2>
+          <p class="muted">Quatro profissionais, cada um com sua especialidade.</p>
+        </div>
+        <ul class="grid grid-barbers" id="lista-barbeiros" aria-busy="true"></ul>
+      </section>
+
+      <section class="block" aria-labelledby="titulo-servicos">
+        <div class="block-head">
+          <h2 id="titulo-servicos">Serviços</h2>
+          <p class="muted">Preço e duração de cada atendimento.</p>
+        </div>
+        <ul class="grid grid-services" id="lista-servicos" aria-busy="true"></ul>
+      </section>
+
+      <section class="block info-grid" aria-label="Horário e contato">
+        <article class="card">
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-clock"/></svg>Horário de funcionamento</h2>
+          <dl class="hours" id="horario-funcionamento"></dl>
+        </article>
+        <article class="card">
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-pin"/></svg>Localização e contato</h2>
+          <p id="contato-endereco" class="contact-line"></p>
+          <p id="contato-telefone" class="contact-line"></p>
+          <a class="btn btn-gold" href="#agendar">Agendar horário</a>
+        </article>
+      </section>
+    </section>
+
+    <!-- AGENDAR -->
+    <section class="view" id="view-agendar" data-view="agendar" aria-labelledby="titulo-agendar" hidden>
+      <div class="page-head">
+        <h1 id="titulo-agendar" tabindex="-1">Agendar horário</h1>
+        <ol class="stepper" aria-label="Etapas do agendamento">
+          <li data-step="1">Serviço</li><li data-step="2">Barbeiro</li><li data-step="3">Horário</li><li data-step="4">Confirmar</li>
+        </ol>
+      </div>
+
+      <form id="form-agendar" class="booking" novalidate>
+        <fieldset class="step" id="passo-servico">
+          <legend><span class="step-n">1</span>Escolha o serviço</legend>
+          <div class="choices" id="agendar-servicos" aria-busy="true"></div>
+          <p class="field-error" id="erro-servico" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-barbeiro">
+          <legend><span class="step-n">2</span>Escolha o barbeiro</legend>
+          <div class="choices choices-barbers" id="agendar-barbeiros" aria-busy="true"></div>
+          <p class="field-error" id="erro-barbeiro" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-horario">
+          <legend><span class="step-n">3</span>Data e horário</legend>
+          <div id="agendar-calendario" class="calendar"></div>
+          <p class="field-error" id="erro-horario" hidden></p>
+        </fieldset>
+
+        <fieldset class="step" id="passo-dados">
+          <legend><span class="step-n">4</span>Seus dados</legend>
+          <div id="dados-identificado" class="identified" hidden>
+            <svg aria-hidden="true"><use href="#i-user"/></svg>
+            <p>Agendando como <strong id="dados-nome"></strong>.</p>
+          </div>
+          <div id="dados-cadastro">
+            <p class="muted small">Só pedimos nome e telefone com DDD. Seu telefone não dá acesso às suas reservas: o acesso fica neste aparelho.</p>
+            <div class="field">
+              <label for="cad-nome">Nome</label>
+              <input id="cad-nome" name="name" type="text" autocomplete="name" maxlength="100" required aria-describedby="cad-nome-erro">
+              <p class="field-error" id="cad-nome-erro" hidden></p>
+            </div>
+            <div class="field">
+              <label for="cad-telefone">Telefone com DDD</label>
+              <input id="cad-telefone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="16" placeholder="(11) 91234-5678" required aria-describedby="cad-telefone-erro">
+              <p class="field-error" id="cad-telefone-erro" hidden></p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="agendar-obs">Observação <span class="muted">(opcional)</span></label>
+            <textarea id="agendar-obs" name="notes" maxlength="500" rows="2"></textarea>
+          </div>
+        </fieldset>
+
+        <aside class="summary card" aria-labelledby="titulo-resumo">
+          <h2 id="titulo-resumo" class="card-title">Resumo</h2>
+          <dl class="summary-list" id="resumo"></dl>
+          <p class="form-error" id="agendar-erro" role="alert" hidden></p>
+          <button type="submit" class="btn btn-gold btn-lg btn-block" id="agendar-confirmar">Confirmar agendamento</button>
+        </aside>
+      </form>
+
+      <div class="card success" id="agendar-sucesso" tabindex="-1" hidden>
+        <svg class="success-icon" aria-hidden="true"><use href="#i-check"/></svg>
+        <h2>Horário reservado!</h2>
+        <p id="sucesso-detalhe"></p>
+        <div class="row">
+          <a class="btn btn-gold" href="#reservas">Ver minhas reservas</a>
+          <button type="button" class="btn btn-ghost" id="agendar-novo">Fazer outro agendamento</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINHAS RESERVAS -->
+    <section class="view" id="view-reservas" data-view="reservas" aria-labelledby="titulo-reservas" hidden>
+      <div class="page-head">
+        <h1 id="titulo-reservas" tabindex="-1">Minhas reservas</h1>
+      </div>
+      <div id="reservas-anonimo" hidden>
+        <div class="card">
+          <p>Suas reservas ficam ligadas a este aparelho. Ainda não encontramos uma sessão de cliente aqui.</p>
+          <a class="btn btn-gold" href="#agendar">Agendar horário</a>
+        </div>
+        <form class="card" id="form-recuperar" novalidate>
+          <h2 class="card-title"><svg aria-hidden="true"><use href="#i-lock"/></svg>Recuperar acesso em outro aparelho</h2>
+          <p class="muted small">Enviaremos um código de 6 dígitos ao telefone cadastrado. Informar o número sozinho não dá acesso a nenhuma reserva.</p>
+          <div class="field">
+            <label for="rec-telefone">Telefone com DDD</label>
+            <input id="rec-telefone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="16" placeholder="(11) 91234-5678" required aria-describedby="rec-telefone-erro">
+            <p class="field-error" id="rec-telefone-erro" hidden></p>
+          </div>
+          <button type="submit" class="btn btn-ghost" id="rec-enviar">Enviar código</button>
+          <div id="rec-codigo-bloco" hidden>
+            <p class="status" id="rec-mensagem" role="status"></p>
+            <div class="field">
+              <label for="rec-codigo">Código recebido</label>
+              <input id="rec-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" aria-describedby="rec-codigo-erro">
+              <p class="field-error" id="rec-codigo-erro" hidden></p>
+            </div>
+            <button type="button" class="btn btn-gold" id="rec-verificar">Confirmar código</button>
+          </div>
+          <p class="form-error" id="rec-erro" role="alert" hidden></p>
+        </form>
+      </div>
+      <div id="reservas-cliente" hidden>
+        <div class="toolbar">
+          <label class="inline-field" for="reservas-periodo">Período
+            <select id="reservas-periodo">
+              <option value="proximas">Próximos 31 dias</option>
+              <option value="anteriores">Últimos 31 dias</option>
+            </select>
+          </label>
+          <a class="btn btn-gold btn-sm" href="#agendar">Novo agendamento</a>
+        </div>
+        <p class="status" id="reservas-status" role="status" aria-live="polite"></p>
+        <ul class="appt-list" id="lista-reservas"></ul>
+      </div>
+    </section>
+
+    <!-- EQUIPE -->
+    <section class="view" id="view-equipe" data-view="equipe" aria-labelledby="titulo-equipe" hidden>
+      <div class="page-head">
+        <h1 id="titulo-equipe" tabindex="-1">Área da equipe</h1>
+      </div>
+      <form class="card narrow" id="form-equipe-login" novalidate>
+        <h2 class="card-title"><svg aria-hidden="true"><use href="#i-lock"/></svg>Entrar</h2>
+        <p class="muted small" id="equipe-login-ajuda">Acesso para barbeiros e administração.</p>
+        <div class="field">
+          <label for="equipe-login">Login</label>
+          <input id="equipe-login" name="login" type="text" autocomplete="username" maxlength="100" required aria-describedby="equipe-login-erro">
+          <p class="field-error" id="equipe-login-erro" hidden></p>
+        </div>
+        <div class="field">
+          <label for="equipe-senha">Senha</label>
+          <input id="equipe-senha" name="password" type="password" autocomplete="current-password" maxlength="128" required aria-describedby="equipe-senha-erro">
+          <p class="field-error" id="equipe-senha-erro" hidden></p>
+        </div>
+        <p class="form-error" id="equipe-erro" role="alert" hidden></p>
+        <button type="submit" class="btn btn-gold btn-block" id="equipe-entrar">Entrar</button>
+      </form>
+
+      <div id="painel" hidden>
+        <div class="panel-tabs" role="tablist" aria-label="Seções do painel">
+          <button type="button" role="tab" class="ptab" id="ptab-agenda" aria-controls="painel-agenda" aria-selected="true">Agenda</button>
+          <button type="button" role="tab" class="ptab" id="ptab-servicos" aria-controls="painel-servicos" aria-selected="false" data-admin>Serviços</button>
+          <button type="button" role="tab" class="ptab" id="ptab-barbeiros" aria-controls="painel-barbeiros" aria-selected="false" data-admin>Barbeiros</button>
+          <button type="button" role="tab" class="ptab" id="ptab-expediente" aria-controls="painel-expediente" aria-selected="false" data-admin>Expediente</button>
+          <button type="button" role="tab" class="ptab" id="ptab-bloqueios" aria-controls="painel-bloqueios" aria-selected="false" data-admin>Bloqueios</button>
+          <button type="button" role="tab" class="ptab" id="ptab-barbearia" aria-controls="painel-barbearia" aria-selected="false" data-admin>Barbearia</button>
+        </div>
+
+        <div class="ppanel" id="painel-agenda" role="tabpanel" aria-labelledby="ptab-agenda">
+          <div class="toolbar">
+            <button type="button" class="btn btn-icon" id="agenda-anterior" aria-label="Dia anterior"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
+            <label class="inline-field" for="agenda-data">Dia <input type="date" id="agenda-data"></label>
+            <button type="button" class="btn btn-icon" id="agenda-proximo" aria-label="Próximo dia"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
+            <button type="button" class="btn btn-ghost btn-sm" id="agenda-hoje">Hoje</button>
+          </div>
+          <h2 class="agenda-day" id="agenda-titulo"></h2>
+          <p class="status" id="agenda-status" role="status" aria-live="polite"></p>
+          <div class="agenda" id="agenda-colunas"></div>
+        </div>
+
+        <div class="ppanel" id="painel-servicos" role="tabpanel" aria-labelledby="ptab-servicos" hidden>
+          <form class="card" id="form-servico" novalidate>
+            <h2 class="card-title" id="servico-form-titulo">Novo serviço</h2>
+            <input type="hidden" id="servico-id">
+            <div class="form-row">
+              <div class="field">
+                <label for="servico-nome">Nome</label>
+                <input id="servico-nome" name="name" type="text" maxlength="100" required aria-describedby="servico-nome-erro">
+                <p class="field-error" id="servico-nome-erro" hidden></p>
+              </div>
+              <div class="field">
+                <label for="servico-duracao">Duração (min)</label>
+                <input id="servico-duracao" name="durationMinutes" type="number" min="5" max="480" step="5" required aria-describedby="servico-duracao-erro">
+                <p class="field-error" id="servico-duracao-erro" hidden></p>
+              </div>
+              <div class="field">
+                <label for="servico-preco">Preço (R$)</label>
+                <input id="servico-preco" name="priceCents" type="text" inputmode="decimal" placeholder="60,00" required aria-describedby="servico-preco-erro">
+                <p class="field-error" id="servico-preco-erro" hidden></p>
+              </div>
+            </div>
+            <p class="form-error" id="servico-erro" role="alert" hidden></p>
+            <div class="row">
+              <button type="submit" class="btn btn-gold" id="servico-salvar">Salvar serviço</button>
+              <button type="button" class="btn btn-ghost" id="servico-cancelar" hidden>Cancelar edição</button>
+            </div>
+          </form>
+          <ul class="admin-list" id="admin-servicos"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-barbeiros" role="tabpanel" aria-labelledby="ptab-barbeiros" hidden>
+          <p class="status" id="barbeiros-status" role="status" aria-live="polite"></p>
+          <ul class="admin-list" id="admin-barbeiros"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-expediente" role="tabpanel" aria-labelledby="ptab-expediente" hidden>
+          <form class="card" id="form-expediente" novalidate>
+            <div class="field">
+              <label for="expediente-barbeiro">Barbeiro</label>
+              <select id="expediente-barbeiro"></select>
+            </div>
+            <div class="week" id="expediente-dias"></div>
+            <p class="form-error" id="expediente-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="expediente-salvar">Salvar expediente</button>
+          </form>
+        </div>
+
+        <div class="ppanel" id="painel-bloqueios" role="tabpanel" aria-labelledby="ptab-bloqueios" hidden>
+          <form class="card" id="form-bloqueio" novalidate>
+            <h2 class="card-title">Bloquear horário</h2>
+            <div class="form-row">
+              <div class="field">
+                <label for="bloqueio-barbeiro">Barbeiro</label>
+                <select id="bloqueio-barbeiro"></select>
+              </div>
+              <div class="field">
+                <label for="bloqueio-data">Data</label>
+                <input id="bloqueio-data" type="date" required>
+              </div>
+              <div class="field">
+                <label for="bloqueio-inicio">Início</label>
+                <input id="bloqueio-inicio" type="time" step="900" required>
+              </div>
+              <div class="field">
+                <label for="bloqueio-fim">Fim</label>
+                <input id="bloqueio-fim" type="time" step="900" required aria-describedby="bloqueio-fim-erro">
+                <p class="field-error" id="bloqueio-fim-erro" hidden></p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="bloqueio-motivo">Motivo <span class="muted">(interno, opcional)</span></label>
+              <input id="bloqueio-motivo" type="text" maxlength="200">
+            </div>
+            <p class="form-error" id="bloqueio-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="bloqueio-salvar">Bloquear</button>
+          </form>
+          <ul class="admin-list" id="admin-bloqueios"></ul>
+        </div>
+
+        <div class="ppanel" id="painel-barbearia" role="tabpanel" aria-labelledby="ptab-barbearia" hidden>
+          <form class="card" id="form-barbearia" novalidate>
+            <div class="field">
+              <label for="barbearia-nome">Nome da barbearia</label>
+              <input id="barbearia-nome" type="text" maxlength="100" required>
+            </div>
+            <div class="field">
+              <label for="barbearia-endereco">Endereço</label>
+              <input id="barbearia-endereco" type="text" maxlength="300">
+            </div>
+            <div class="field">
+              <label for="barbearia-telefone">Telefone de contato</label>
+              <input id="barbearia-telefone" name="contactPhone" type="tel" inputmode="tel" maxlength="16" aria-describedby="barbearia-telefone-erro">
+              <p class="field-error" id="barbearia-telefone-erro" hidden></p>
+            </div>
+            <p class="form-error" id="barbearia-erro" role="alert" hidden></p>
+            <button type="submit" class="btn btn-gold" id="barbearia-salvar">Salvar dados</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><span id="rodape-nome">Barber Prime</span> · <span id="rodape-endereco"></span></p>
+  </footer>
+
+  <div class="toasts" id="avisos" role="status" aria-live="polite"></div>
+
+  <script>
+// Barber Prime — funções puras compartilhadas pela tela operacional e pela demonstração.
+// Script clássico (sem módulos) para funcionar também dentro do HTML autônomo.
+(function (root) {
+  'use strict';
+
+  // Mesma regra de db/telefone.mjs: DDD válido, celular com 9 dígitos começando em 9, fixo de 2 a 5.
+  const DDD_VALIDOS = new Set([
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 27, 28, 31, 32, 33, 34, 35, 37, 38,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 53, 54, 55, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+    71, 73, 74, 75, 77, 79, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+  ]);
+
+  function normalizePhoneBR(input) {
+    if (typeof input !== 'string' || input.length > 40) return null;
+    if (!/^[\d\s()+.-]+$/.test(input)) return null;
+    let digits = input.replace(/\D/g, '');
+    if (input.trim().startsWith('+')) {
+      if (!digits.startsWith('55')) return null;
+      digits = digits.slice(2);
+    } else if (digits.length >= 12 && digits.startsWith('55')) {
+      digits = digits.slice(2);
+    } else if (digits.startsWith('0')) {
+      digits = digits.replace(/^0+/, '');
+    }
+    if (digits.length !== 10 && digits.length !== 11) return null;
+    if (!DDD_VALIDOS.has(Number(digits.slice(0, 2)))) return null;
+    const local = digits.slice(2);
+    if (local.length === 9 && local[0] !== '9') return null;
+    if (local.length === 8 && !/^[2-5]/.test(local)) return null;
+    return '+55' + digits;
+  }
+
+  function formatPhoneBR(e164) {
+    if (typeof e164 !== 'string') return '';
+    const d = e164.replace(/^\+55/, '');
+    if (d.length === 11) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+    if (d.length === 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+    return e164;
+  }
+
+  // Máscara progressiva para o campo de telefone enquanto a pessoa digita.
+  function maskPhoneInput(value) {
+    const d = String(value).replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 2) return d.length ? '(' + d : '';
+    if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+    if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+    return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+  }
+
+  function validateName(value) {
+    const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+    if (name.length < 2) return { ok: false, message: 'Informe seu nome (mínimo de 2 letras).' };
+    if (name.length > 100) return { ok: false, message: 'O nome pode ter no máximo 100 caracteres.' };
+    if (!/\p{L}/u.test(name)) return { ok: false, message: 'O nome precisa conter letras.' };
+    if (/[<>]/.test(name)) return { ok: false, message: 'Remova os caracteres < e >.' };
+    return { ok: true, value: name };
+  }
+
+  function validatePhone(value) {
+    const phone = normalizePhoneBR(typeof value === 'string' ? value : '');
+    if (!phone) return { ok: false, message: 'Informe um telefone válido com DDD, por exemplo (11) 91234-5678.' };
+    return { ok: true, value: phone };
+  }
+
+  function validateCode(value) {
+    const code = typeof value === 'string' ? value.trim() : '';
+    if (!/^\d{6}$/.test(code)) return { ok: false, message: 'O código tem 6 dígitos.' };
+    return { ok: true, value: code };
+  }
+
+  function validateStaffLogin(login, password) {
+    const fields = {};
+    const l = typeof login === 'string' ? login.trim() : '';
+    if (l.length < 3 || l.length > 100) fields.login = 'Informe o login (3 a 100 caracteres).';
+    if (typeof password !== 'string' || password.length < 12 || password.length > 128) {
+      fields.password = 'A senha tem de 12 a 128 caracteres.';
+    }
+    return Object.keys(fields).length ? { ok: false, fields } : { ok: true, value: { login: l, password } };
+  }
+
+  function validateServiceInput({ name, durationMinutes, priceCents }) {
+    const fields = {};
+    const n = typeof name === 'string' ? name.trim() : '';
+    if (n.length < 2 || n.length > 100) fields.name = 'Nome de 2 a 100 caracteres.';
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 480) {
+      fields.durationMinutes = 'Duração inteira entre 5 e 480 minutos.';
+    }
+    if (!Number.isInteger(priceCents) || priceCents < 0 || priceCents > 1000000) {
+      fields.priceCents = 'Preço entre R$ 0,00 e R$ 10.000,00.';
+    }
+    return Object.keys(fields).length ? { ok: false, fields } : { ok: true, value: { name: n, durationMinutes, priceCents } };
+  }
+
+  // "60,00", "60", "R$ 1.234,50" → centavos inteiros; null se inválido.
+  function parseMoneyToCents(text) {
+    if (typeof text !== 'string') return null;
+    const clean = text.replace(/R\$|\s/g, '');
+    if (!/^\d{1,3}(\.?\d{3})*(,\d{1,2})?$|^\d+(,\d{1,2})?$/.test(clean)) return null;
+    const [int, frac = ''] = clean.replace(/\./g, '').split(',');
+    return Number(int) * 100 + Number((frac + '00').slice(0, 2));
+  }
+
+  const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  function formatMoney(cents) {
+    return Number.isInteger(cents) ? BRL.format(cents / 100) : '';
+  }
+
+  function formatDuration(minutes) {
+    if (!Number.isInteger(minutes) || minutes <= 0) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (!h) return m + ' min';
+    return m ? h + 'h' + String(m).padStart(2, '0') : h + 'h';
+  }
+
+  // ---- Datas no fuso IANA da barbearia --------------------------------------------------------
+
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  function todayIn(timeZone, now) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+      .format(now || new Date());
+  }
+
+  function addDays(isoDate, days) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d + days));
+    return dt.toISOString().slice(0, 10);
+  }
+
+  function weekdayOf(isoDate) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  }
+
+  // Deslocamento (minutos) do fuso no instante dado: horário local - UTC.
+  function tzOffsetMinutes(timeZone, epochMs) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }).formatToParts(new Date(epochMs));
+    const get = (t) => Number(parts.find((p) => p.type === t).value);
+    const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+    return Math.round((asUtc - Math.floor(epochMs / 1000) * 1000) / 60000);
+  }
+
+  // Data + hora locais do estabelecimento → instante ISO UTC.
+  function zonedToInstant(isoDate, hhmm, timeZone) {
+    if (!ISO_DATE.test(isoDate) || !HH_MM.test(hhmm)) return null;
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const [hh, mm] = hhmm.split(':').map(Number);
+    const wall = Date.UTC(y, m - 1, d, hh, mm);
+    let guess = wall - tzOffsetMinutes(timeZone, wall) * 60000;
+    guess = wall - tzOffsetMinutes(timeZone, guess) * 60000;
+    return new Date(guess).toISOString();
+  }
+
+  function localDateOf(instant, timeZone) {
+    return todayIn(timeZone, new Date(instant));
+  }
+
+  function formatTime(instant, timeZone) {
+    return new Intl.DateTimeFormat('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' }).format(new Date(instant));
+  }
+
+  function formatDateLong(isoDateOrInstant, timeZone) {
+    const date = ISO_DATE.test(isoDateOrInstant)
+      ? new Date(isoDateOrInstant + 'T12:00:00Z')
+      : new Date(isoDateOrInstant);
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: ISO_DATE.test(isoDateOrInstant) ? 'UTC' : timeZone,
+      weekday: 'long', day: '2-digit', month: 'long',
+    }).format(date);
+  }
+
+  function dayChip(isoDate) {
+    const date = new Date(isoDate + 'T12:00:00Z');
+    const f = (o) => new Intl.DateTimeFormat('pt-BR', Object.assign({ timeZone: 'UTC' }, o)).format(date);
+    return { weekday: f({ weekday: 'short' }).replace('.', ''), day: f({ day: '2-digit' }), month: f({ month: 'short' }).replace('.', '') };
+  }
+
+  // Intervalos semiabertos [início, fim): atendimentos encostados não conflitam.
+  function overlaps(aStart, aEnd, bStart, bEnd) {
+    return new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd);
+  }
+
+  const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+  const STATUS_LABEL = { confirmed: 'Confirmado', completed: 'Concluído', cancelled: 'Cancelado', no_show: 'Não compareceu' };
+
+  function isUuid(value) {
+    return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  function initials(name) {
+    return String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+  }
+
+  // Mensagem amigável para os erros padronizados do contrato.
+  function errorMessage(error) {
+    if (!error) return 'Algo deu errado. Tente novamente.';
+    const byCode = {
+      SLOT_CONFLICT: 'Esse horário acabou de ser ocupado. Escolha outro horário.',
+      VERSION_CONFLICT: 'Os dados mudaram desde a última leitura. Atualize e tente de novo.',
+      IDEMPOTENCY_CONFLICT: 'Essa solicitação já foi enviada com outros dados. Recarregue a página.',
+      SCHEDULE_CONFLICT: 'A alteração afeta reservas confirmadas. Remaneje essas reservas antes.',
+      NETWORK_ERROR: 'Sem conexão com o servidor. Verifique a internet e tente novamente.',
+    };
+    if (error.code && byCode[error.code]) return byCode[error.code];
+    const byStatus = {
+      401: 'Sua sessão expirou ou você ainda não entrou.',
+      403: 'Você não tem permissão para esta ação.',
+      404: 'Não encontrado ou indisponível para você.',
+      409: 'Conflito com outra alteração. Atualize e tente de novo.',
+      422: 'A operação não é permitida por uma regra da barbearia.',
+      429: 'Muitas tentativas. Aguarde um pouco e tente de novo.',
+      503: 'Serviço temporariamente indisponível. Tente mais tarde.',
+    };
+    return error.message || byStatus[error.status] || 'Algo deu errado. Tente novamente.';
+  }
+
+  function ApiError(status, code, message, fields) {
+    const e = new Error(message || code || 'Erro');
+    e.name = 'ApiError';
+    e.status = status;
+    e.code = code;
+    e.fields = fields || null;
+    return e;
+  }
+
+  root.BPCore = {
+    normalizePhoneBR, formatPhoneBR, maskPhoneInput, validateName, validatePhone, validateCode,
+    validateStaffLogin, validateServiceInput, parseMoneyToCents, formatMoney, formatDuration,
+    todayIn, addDays, weekdayOf, tzOffsetMinutes, zonedToInstant, localDateOf, formatTime,
+    formatDateLong, dayChip, overlaps, WEEKDAYS, STATUS_LABEL, isUuid, initials, errorMessage, ApiError,
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// Barber Prime — adaptador de DEMONSTRAÇÃO: mesma interface do adaptador HTTP, dados só no localStorage.
+// Usado exclusivamente pelo app-autonomo.html (offline). Não é o sistema operacional nem substitui o backend.
+(function (root) {
+  'use strict';
+  const C = root.BPCore;
+  const { ApiError } = C;
+  const KEY = 'barberprime.demo.v1';
+  const TZ = 'America/Sao_Paulo';
+  const STEP = 15;
+  const HORIZON_DAYS = 60;
+
+  function uuid() {
+    if (root.crypto && typeof root.crypto.randomUUID === 'function') return root.crypto.randomUUID();
+    const b = [];
+    for (let i = 0; i < 16; i++) b.push(Math.floor(Math.random() * 256));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = b.map((x) => x.toString(16).padStart(2, '0')).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+
+  // Hash apenas para não guardar a senha da demonstração em texto puro no navegador (não é proteção de produção).
+  function demoHash(salt, text) {
+    let h = 0x811c9dc5;
+    const s = salt + ':' + text;
+    for (let round = 0; round < 500; round++) {
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      h ^= round;
+    }
+    return h.toString(16);
+  }
+
+  function seed() {
+    const barbers = [
+      ['Rafael Monteiro', 'Cortes clássicos e navalhado.'],
+      ['Diego Alencar', 'Degradê e desenhos.'],
+      ['Lucas Ferraz', 'Barba terapia e acabamento.'],
+      ['Bruno Tavares', 'Cortes modernos e texturizados.'],
+    ].map(([name, bio]) => ({ id: uuid(), name, bio, role: 'barber', active: true, version: 1 }));
+    const services = [
+      ['Corte masculino', 'Corte com lavagem e finalização.', 45, 6000],
+      ['Barba completa', 'Toalha quente, navalha e hidratação.', 30, 4500],
+      ['Corte + barba', 'Combo completo.', 75, 9500],
+      ['Pezinho e sobrancelha', 'Acabamento rápido.', 15, 2500],
+      ['Pigmentação', 'Correção de falhas em barba ou cabelo.', 60, 8000],
+    ].map(([name, description, durationMinutes, priceCents]) => ({ id: uuid(), name, description, durationMinutes, priceCents, active: true, version: 1 }));
+    const hours = {};
+    for (const b of barbers) {
+      hours[b.id] = [1, 2, 3, 4, 5, 6].map((weekday) => ({
+        id: uuid(), staffId: b.id, weekday, startLocal: '09:00', endLocal: '19:00', validFrom: '2026-01-01', validUntil: null, version: 1,
+      }));
+    }
+    return {
+      shop: {
+        id: uuid(), name: 'Barber Prime', timezone: TZ,
+        address: 'Endereço fictício da demonstração — configure no painel', contactPhone: null, version: 1,
+      },
+      staff: barbers, services, hours, blocks: [], appointments: [], customers: [], idempotency: {},
+      admin: null, challenges: [],
+    };
+  }
+
+  function createDemoAdapter(options) {
+    const opts = options || {};
+    const storage = opts.storage || root.localStorage;
+    const now = opts.now || (() => new Date());
+    let state;
+    try {
+      state = JSON.parse(storage.getItem(KEY) || 'null');
+    } catch {
+      state = null;
+    }
+    if (!state || !state.shop) {
+      state = seed();
+    }
+    let session = state.session || { role: 'anonymous', principalId: null };
+
+    function save() {
+      state.session = session;
+      storage.setItem(KEY, JSON.stringify(state));
+    }
+    save();
+
+    const delay = (v) => new Promise((resolve) => setTimeout(() => resolve(v), opts.latency ?? 120));
+    const clone = (v) => JSON.parse(JSON.stringify(v));
+    const ok = (v) => delay(clone(v));
+    const fail = (status, code, message, fields) => Promise.reject(ApiError(status, code, message, fields));
+
+    function requireRole(...roles) {
+      if (session.role === 'anonymous') throw ApiError(401, 'UNAUTHENTICATED', 'Entre para continuar.');
+      if (!roles.includes(session.role)) throw ApiError(403, 'FORBIDDEN', null);
+    }
+
+    function canSee(a) {
+      if (session.role === 'admin') return true;
+      if (session.role === 'customer') return a.customerId === session.principalId;
+      if (session.role === 'barber') return a.staffId === session.principalId;
+      return false;
+    }
+
+    function findVisible(id) {
+      const a = state.appointments.find((x) => x.id === id);
+      if (!a || !canSee(a)) throw ApiError(404, 'NOT_FOUND', null);
+      return a;
+    }
+
+    function hoursFor(staffId, date) {
+      const wd = C.weekdayOf(date);
+      return (state.hours[staffId] || []).filter((h) => h.weekday === wd && h.validFrom <= date && (!h.validUntil || h.validUntil >= date));
+    }
+
+    function busy(staffId, ignoreId) {
+      const a = state.appointments
+        .filter((x) => x.staffId === staffId && x.status === 'confirmed' && x.id !== ignoreId)
+        .map((x) => [x.startAt, x.endAt]);
+      const b = state.blocks.filter((x) => x.staffId === staffId).map((x) => [x.startAt, x.endAt]);
+      return a.concat(b);
+    }
+
+    function slotsFor(staffId, service, date, ignoreId) {
+      const today = C.todayIn(TZ, now());
+      if (date < today || date > C.addDays(today, HORIZON_DAYS)) return [];
+      const taken = busy(staffId, ignoreId);
+      const out = [];
+      for (const h of hoursFor(staffId, date)) {
+        const [sh, sm] = h.startLocal.split(':').map(Number);
+        const [eh, em] = h.endLocal.split(':').map(Number);
+        for (let t = sh * 60 + sm; t + service.durationMinutes <= eh * 60 + em; t += STEP) {
+          const hhmm = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+          const startAt = C.zonedToInstant(date, hhmm, TZ);
+          const endAt = new Date(new Date(startAt).getTime() + service.durationMinutes * 60000).toISOString();
+          if (new Date(startAt) <= now()) continue;
+          if (taken.some(([s, e]) => C.overlaps(startAt, endAt, s, e))) continue;
+          out.push({ startAt, endAt });
+        }
+      }
+      return out;
+    }
+
+    function activeBarber(id) {
+      const s = state.staff.find((x) => x.id === id && x.active && x.role === 'barber');
+      if (!s) throw ApiError(404, 'NOT_FOUND', 'Barbeiro indisponível.');
+      return s;
+    }
+
+    function slotIsFree(staffId, service, startAt, ignoreId) {
+      if (Number.isNaN(Date.parse(startAt))) throw ApiError(400, 'VALIDATION_ERROR', null, { startAt: 'Horário inválido.' });
+      const date = C.localDateOf(startAt, TZ);
+      const iso = new Date(startAt).toISOString();
+      return slotsFor(staffId, service, date, ignoreId).some((s) => s.startAt === iso);
+    }
+
+    function project(a) {
+      const out = clone(a);
+      const st = state.staff.find((s) => s.id === a.staffId);
+      const sv = state.services.find((s) => s.id === a.serviceId);
+      out.staffName = st ? st.name : '';
+      out.serviceName = sv ? sv.name : '';
+      if (session.role === 'customer') delete out.customerName;
+      return out;
+    }
+
+    // Mesmo formato pedido ao backend: por dia, menor início e maior fim entre barbeiros ativos.
+    function openingHours() {
+      const byDay = {};
+      for (const s of state.staff.filter((x) => x.active && x.role === 'barber')) {
+        for (const h of state.hours[s.id] || []) {
+          const d = byDay[h.weekday];
+          byDay[h.weekday] = d
+            ? { weekday: h.weekday, startLocal: h.startLocal < d.startLocal ? h.startLocal : d.startLocal, endLocal: h.endLocal > d.endLocal ? h.endLocal : d.endLocal }
+            : { weekday: h.weekday, startLocal: h.startLocal, endLocal: h.endLocal };
+        }
+      }
+      return Object.values(byDay).sort((a, b) => a.weekday - b.weekday);
+    }
+
+    function wrap(fn) {
+      return (...args) => {
+        try {
+          const r = fn(...args);
+          return r && typeof r.then === 'function' ? r : ok(r);
+        } catch (e) {
+          return delay().then(() => { throw e; });
+        }
+      };
+    }
+
+    return {
+      mode: 'demo',
+      isDemo: true,
+      shop: wrap(() => Object.assign({}, state.shop, { openingHours: openingHours() })),
+      staff: wrap(() => state.staff.filter((s) => s.active && s.role === 'barber').map(({ id, name, bio, role }) => ({ id, name, bio, role }))),
+      services: wrap(() => state.services.filter((s) => s.active)),
+      adminStaff: wrap(() => { requireRole('admin'); return state.staff; }),
+      adminServices: wrap(() => { requireRole('admin'); return state.services; }),
+      availability: wrap(({ staffId, serviceId, date }) => {
+        if (!C.isUuid(staffId) || !C.isUuid(serviceId) || !/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
+          throw ApiError(400, 'VALIDATION_ERROR', 'Parâmetros inválidos.');
+        }
+        activeBarber(staffId);
+        const service = state.services.find((s) => s.id === serviceId && s.active);
+        if (!service) throw ApiError(404, 'NOT_FOUND', 'Serviço indisponível.');
+        return { staffId, serviceId, date, timezone: TZ, slots: slotsFor(staffId, service, date) };
+      }),
+      me: wrap(() => {
+        if (session.role === 'customer') {
+          const c = state.customers.find((x) => x.id === session.principalId);
+          return c ? { id: c.id, name: c.name, role: 'customer' } : null;
+        }
+        if (session.role === 'admin') return { id: 'admin', name: 'Administrador (demonstração)', role: 'admin' };
+        return null;
+      }),
+      register: wrap(({ name, phone }) => {
+        const n = C.validateName(name);
+        const p = C.validatePhone(phone);
+        const fields = {};
+        if (!n.ok) fields.name = n.message;
+        if (!p.ok) fields.phone = p.message;
+        if (Object.keys(fields).length) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', fields);
+        // Telefone já cadastrado nunca concede acesso: mesma resposta genérica, sessão inalterada.
+        if (!state.customers.some((c) => c.phone === p.value)) {
+          const c = { id: uuid(), name: n.value, phone: p.value, phoneVerifiedAt: null, createdAt: now().toISOString(), version: 1 };
+          state.customers.push(c);
+          session = { role: 'customer', principalId: c.id };
+          save();
+        }
+        return { message: 'Solicitação recebida. Continue no dispositivo ou verifique a posse do telefone.' };
+      }),
+      requestChallenge: wrap(({ phone }) => {
+        const p = C.validatePhone(phone);
+        if (!p.ok) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', { phone: p.message });
+        const customer = state.customers.find((c) => c.phone === p.value);
+        const code = String(Math.floor(Math.random() * 1e6)).padStart(6, '0');
+        const ch = { id: uuid(), customerId: customer ? customer.id : null, codeHash: demoHash('ch', code), expiresAt: Date.now() + 5 * 60000, attempts: 0, consumed: false };
+        state.challenges.push(ch);
+        save();
+        // Sem provedor de SMS offline: a demonstração mostra o código na tela (somente aqui, nunca no produto).
+        return { challengeId: ch.id, message: 'Se possível, enviaremos as instruções.', demoCode: customer ? code : null };
+      }),
+      verifyChallenge: wrap(({ challengeId, code }) => {
+        const ch = state.challenges.find((x) => x.id === challengeId);
+        const generic = () => ApiError(401, 'INVALID_CHALLENGE', 'Código inválido ou expirado.');
+        if (!ch || ch.consumed || ch.expiresAt < Date.now() || ch.attempts >= 5) throw generic();
+        ch.attempts += 1;
+        if (ch.codeHash !== demoHash('ch', String(code)) || !ch.customerId) {
+          save();
+          throw generic();
+        }
+        ch.consumed = true;
+        const c = state.customers.find((x) => x.id === ch.customerId);
+        c.phoneVerifiedAt = now().toISOString();
+        session = { role: 'customer', principalId: c.id };
+        save();
+        return { role: 'customer' };
+      }),
+      login: wrap(({ login, password }) => {
+        const v = C.validateStaffLogin(login, password);
+        if (!v.ok) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', v.fields);
+        if (!state.admin) {
+          const salt = uuid();
+          state.admin = { login: v.value.login, salt, hash: demoHash(salt, password) };
+        } else if (state.admin.login !== v.value.login || state.admin.hash !== demoHash(state.admin.salt, password)) {
+          throw ApiError(401, 'INVALID_CREDENTIALS', 'Login ou senha incorretos.');
+        }
+        session = { role: 'admin', principalId: 'admin' };
+        save();
+        return { id: 'admin', role: 'admin' };
+      }),
+      logout: wrap(() => {
+        session = { role: 'anonymous', principalId: null };
+        save();
+        return null;
+      }),
+      createAppointment: wrap((body, idempotencyKey) => {
+        requireRole('customer', 'admin');
+        if (typeof idempotencyKey !== 'string' || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
+          throw ApiError(400, 'VALIDATION_ERROR', 'Idempotency-Key inválida.');
+        }
+        const prior = state.idempotency[idempotencyKey];
+        if (prior) {
+          if (prior.body !== JSON.stringify(body)) throw ApiError(409, 'IDEMPOTENCY_CONFLICT', null);
+          return project(state.appointments.find((a) => a.id === prior.id));
+        }
+        const barber = activeBarber(body.staffId);
+        const service = state.services.find((s) => s.id === body.serviceId && s.active);
+        if (!service) throw ApiError(404, 'NOT_FOUND', 'Serviço indisponível.');
+        const notes = typeof body.notes === 'string' ? body.notes.slice(0, 500) : '';
+        let customerId = session.principalId;
+        if (session.role === 'admin') {
+          if (!state.customers.some((c) => c.id === body.customerId)) throw ApiError(404, 'NOT_FOUND', 'Cliente não encontrado.');
+          customerId = body.customerId;
+        }
+        if (!slotIsFree(barber.id, service, body.startAt)) throw ApiError(409, 'SLOT_CONFLICT', null);
+        const startAt = new Date(body.startAt).toISOString();
+        const customer = state.customers.find((c) => c.id === customerId);
+        const a = {
+          id: uuid(), customerId, customerName: customer ? customer.name : 'Cliente', staffId: barber.id, serviceId: service.id,
+          startAt, endAt: new Date(Date.parse(startAt) + service.durationMinutes * 60000).toISOString(),
+          durationMinutes: service.durationMinutes, priceCents: service.priceCents, status: 'confirmed', notes,
+          version: 1, createdAt: now().toISOString(),
+        };
+        state.appointments.push(a);
+        state.idempotency[idempotencyKey] = { id: a.id, body: JSON.stringify(body) };
+        save();
+        return project(a);
+      }),
+      listAppointments: wrap(({ from, to, staffId } = {}) => {
+        requireRole('customer', 'barber', 'admin');
+        const list = state.appointments
+          .filter(canSee)
+          .filter((a) => !staffId || a.staffId === staffId)
+          .filter((a) => {
+            const d = C.localDateOf(a.startAt, TZ);
+            return (!from || d >= from) && (!to || d <= to);
+          })
+          .sort((a, b) => a.startAt.localeCompare(b.startAt));
+        return { data: list.map(project), meta: { cursor: null } };
+      }),
+      getAppointment: wrap((id) => {
+        requireRole('customer', 'barber', 'admin');
+        return project(findVisible(id));
+      }),
+      reschedule: wrap((id, { staffId, startAt, version }) => {
+        requireRole('customer', 'admin');
+        const a = findVisible(id);
+        if (a.version !== version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        if (a.status !== 'confirmed') throw ApiError(422, 'BUSINESS_RULE', 'Somente reservas confirmadas podem ser reagendadas.');
+        const barber = activeBarber(staffId);
+        const service = state.services.find((s) => s.id === a.serviceId) || { durationMinutes: a.durationMinutes };
+        const svc = { durationMinutes: a.durationMinutes, id: service.id };
+        // Conflito mantém a reserva original intacta.
+        if (!slotIsFree(barber.id, svc, startAt, a.id)) throw ApiError(409, 'SLOT_CONFLICT', null);
+        a.staffId = barber.id;
+        a.startAt = new Date(startAt).toISOString();
+        a.endAt = new Date(Date.parse(a.startAt) + a.durationMinutes * 60000).toISOString();
+        a.version += 1;
+        save();
+        return project(a);
+      }),
+      cancel: wrap((id, { version }) => {
+        requireRole('customer', 'admin');
+        const a = findVisible(id);
+        if (a.status === 'cancelled') return project(a);
+        if (a.version !== version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        if (a.status !== 'confirmed') throw ApiError(422, 'BUSINESS_RULE', 'Atendimento já encerrado não pode ser cancelado.');
+        a.status = 'cancelled';
+        a.version += 1;
+        save();
+        return project(a);
+      }),
+      setStatus: wrap((id, { status, version }) => {
+        requireRole('barber', 'admin');
+        const a = findVisible(id);
+        if (!['completed', 'no_show'].includes(status)) throw ApiError(400, 'VALIDATION_ERROR', null, { status: 'Status inválido.' });
+        if (a.version !== version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        if (a.status !== 'confirmed') throw ApiError(422, 'BUSINESS_RULE', 'Reserva não está confirmada.');
+        a.status = status;
+        a.version += 1;
+        save();
+        return project(a);
+      }),
+      updateShop: wrap((body) => {
+        requireRole('admin');
+        if (body.version !== state.shop.version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        const fields = {};
+        if (body.name !== undefined && (typeof body.name !== 'string' || body.name.trim().length < 1 || body.name.length > 100)) fields.name = 'Nome de 1 a 100 caracteres.';
+        if (body.address !== undefined && (typeof body.address !== 'string' || body.address.length > 300)) fields.address = 'Endereço até 300 caracteres.';
+        let phone = state.shop.contactPhone;
+        if (body.contactPhone !== undefined) {
+          if (body.contactPhone === '' || body.contactPhone === null) phone = null;
+          else {
+            phone = C.normalizePhoneBR(body.contactPhone);
+            if (!phone) fields.contactPhone = 'Telefone inválido.';
+          }
+        }
+        if (Object.keys(fields).length) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', fields);
+        if (body.name !== undefined) state.shop.name = body.name.trim();
+        if (body.address !== undefined) state.shop.address = body.address.trim();
+        state.shop.contactPhone = phone;
+        state.shop.version += 1;
+        save();
+        return state.shop;
+      }),
+      createService: wrap((body) => {
+        requireRole('admin');
+        const v = C.validateServiceInput(body);
+        if (!v.ok) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', v.fields);
+        const s = Object.assign({ id: uuid(), description: '', active: true, version: 1 }, v.value);
+        state.services.push(s);
+        save();
+        return s;
+      }),
+      updateService: wrap((id, body) => {
+        requireRole('admin');
+        const s = state.services.find((x) => x.id === id);
+        if (!s) throw ApiError(404, 'NOT_FOUND', null);
+        if (s.version !== body.version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        const merged = Object.assign({}, s, body);
+        const v = C.validateServiceInput(merged);
+        if (!v.ok) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', v.fields);
+        Object.assign(s, v.value, { active: typeof body.active === 'boolean' ? body.active : s.active, version: s.version + 1 });
+        save();
+        return s;
+      }),
+      updateStaff: wrap((id, body) => {
+        requireRole('admin');
+        const s = state.staff.find((x) => x.id === id);
+        if (!s) throw ApiError(404, 'NOT_FOUND', null);
+        if (s.version !== body.version) throw ApiError(409, 'VERSION_CONFLICT', null);
+        if (body.name !== undefined) {
+          const n = C.validateName(body.name);
+          if (!n.ok) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', { name: n.message });
+          s.name = n.value;
+        }
+        if (body.bio !== undefined) {
+          if (typeof body.bio !== 'string' || body.bio.length > 300) throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', { bio: 'Até 300 caracteres.' });
+          s.bio = body.bio.trim();
+        }
+        if (typeof body.active === 'boolean') {
+          const future = state.appointments.some((a) => a.staffId === id && a.status === 'confirmed' && new Date(a.startAt) > now());
+          if (!body.active && future) throw ApiError(409, 'SCHEDULE_CONFLICT', null);
+          s.active = body.active;
+        }
+        s.version += 1;
+        save();
+        return s;
+      }),
+      workingHours: wrap((staffId) => {
+        requireRole('admin');
+        return state.hours[staffId] || [];
+      }),
+      replaceWorkingHours: wrap((staffId, { periods }) => {
+        requireRole('admin');
+        if (!state.staff.some((s) => s.id === staffId)) throw ApiError(404, 'NOT_FOUND', null);
+        if (!Array.isArray(periods) || periods.length > 28) throw ApiError(400, 'VALIDATION_ERROR', 'Lista de até 28 turnos.');
+        for (const p of periods) {
+          if (!Number.isInteger(p.weekday) || p.weekday < 0 || p.weekday > 6 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.startLocal) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.endLocal) || p.endLocal <= p.startLocal) {
+            throw ApiError(400, 'VALIDATION_ERROR', 'Período inválido.');
+          }
+        }
+        const next = periods.map((p) => ({
+          id: uuid(), staffId, weekday: p.weekday, startLocal: p.startLocal, endLocal: p.endLocal,
+          validFrom: p.validFrom || '2000-01-01', validUntil: p.validUntil || null, version: 1,
+        }));
+        // Recusa mudança que deixe reserva confirmada futura fora do expediente.
+        const orphan = state.appointments.some((a) => {
+          if (a.staffId !== staffId || a.status !== 'confirmed' || new Date(a.startAt) <= now()) return false;
+          const d = C.localDateOf(a.startAt, TZ);
+          const wd = C.weekdayOf(d);
+          return !next.some((p) => p.weekday === wd
+            && C.zonedToInstant(d, p.startLocal, TZ) <= a.startAt && C.zonedToInstant(d, p.endLocal, TZ) >= a.endAt);
+        });
+        if (orphan) throw ApiError(409, 'SCHEDULE_CONFLICT', null);
+        state.hours[staffId] = next;
+        save();
+        return next;
+      }),
+      blocks: wrap(({ staffId, from, to } = {}) => {
+        requireRole('admin');
+        return state.blocks.filter((b) => (!staffId || b.staffId === staffId)
+          && (!from || C.localDateOf(b.endAt, TZ) >= from) && (!to || C.localDateOf(b.startAt, TZ) <= to))
+          .sort((a, b) => a.startAt.localeCompare(b.startAt));
+      }),
+      createBlock: wrap(({ staffId, startAt, endAt, reason }) => {
+        requireRole('admin');
+        if (!state.staff.some((s) => s.id === staffId)) throw ApiError(404, 'NOT_FOUND', null);
+        if (Number.isNaN(Date.parse(startAt)) || Number.isNaN(Date.parse(endAt)) || Date.parse(endAt) <= Date.parse(startAt)) {
+          throw ApiError(400, 'VALIDATION_ERROR', 'Entrada inválida.', { endAt: 'O fim precisa ser depois do início.' });
+        }
+        if (busy(staffId).some(([s, e]) => C.overlaps(startAt, endAt, s, e))) throw ApiError(409, 'SLOT_CONFLICT', null);
+        const b = { id: uuid(), staffId, startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString(), reason: String(reason || '').slice(0, 200), version: 1 };
+        state.blocks.push(b);
+        save();
+        return b;
+      }),
+      deleteBlock: wrap((id, version) => {
+        requireRole('admin');
+        const i = state.blocks.findIndex((b) => b.id === id);
+        if (i < 0) throw ApiError(404, 'NOT_FOUND', null);
+        if (state.blocks[i].version !== Number(version)) throw ApiError(409, 'VERSION_CONFLICT', null);
+        state.blocks.splice(i, 1);
+        save();
+        return null;
+      }),
+      // Só a demonstração permite apagar tudo; o produto real nunca expõe isso.
+      resetDemo() {
+        state = seed();
+        session = { role: 'anonymous', principalId: null };
+        save();
+      },
+      _fail: fail,
+    };
+  }
+
+  root.BPDemo = { createDemoAdapter, STORAGE_KEY: KEY };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// Barber Prime — interface (página inicial, agendamento, reservas do cliente e painel da equipe).
+// Script clássico: o mesmo arquivo roda com a API real (public/index.html) e no HTML autônomo de demonstração.
+// Dados vindos da API entram na tela só por textContent/atributos, nunca como HTML.
+(function (root) {
+  'use strict';
+  const C = root.BPCore;
+  const doc = root.document;
+  const $ = (id) => doc.getElementById(id);
+  const isDemo = doc.body.dataset.mode === 'demo';
+  const api = isDemo ? root.BPDemo.createDemoAdapter() : root.BPApi.createApiAdapter();
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const VIEWS = ['inicio', 'agendar', 'reservas', 'equipe'];
+  const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+  const MAX_WEEKS_AHEAD = 8;
+
+  const state = {
+    tz: 'America/Sao_Paulo',
+    shop: null,
+    staff: [],
+    services: [],
+    catalog: null, // Promise do carregamento do catálogo
+    me: undefined, // undefined = ainda não consultado; null = sem sessão
+    booking: { serviceId: null, staffId: null, idemKey: null },
+    agendaDate: null,
+    adminStaff: [],
+    adminServices: [],
+    challengeId: null,
+    firstRoute: true,
+  };
+
+  // ---------------------------------------------------------------- utilitários de DOM
+
+  function el(tag, props, ...children) {
+    const node = doc.createElement(tag);
+    const p = props || {};
+    if (p.className) node.className = p.className;
+    if (p.text !== undefined && p.text !== null) node.textContent = String(p.text);
+    if (p.attrs) for (const [k, v] of Object.entries(p.attrs)) if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v === true ? '' : String(v));
+    if (p.on) for (const [k, fn] of Object.entries(p.on)) node.addEventListener(k, fn);
+    for (const child of children.flat()) {
+      if (child === null || child === undefined || child === false) continue;
+      node.append(child instanceof root.Node ? child : doc.createTextNode(String(child)));
+    }
+    return node;
+  }
+
+  function icon(name, className) {
+    const svg = doc.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    if (className) svg.setAttribute('class', className);
+    const use = doc.createElementNS(SVG_NS, 'use');
+    use.setAttribute('href', '#i-' + name);
+    svg.append(use);
+    return svg;
+  }
+
+  function button(label, className, onClick, attrs) {
+    return el('button', { className: 'btn ' + (className || ''), text: label, attrs: Object.assign({ type: 'button' }, attrs), on: onClick ? { click: onClick } : null });
+  }
+
+  function setBusy(btn, busy) {
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.classList.toggle('is-loading', busy);
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function showError(node, message) {
+    if (!node) return;
+    node.textContent = message || '';
+    node.hidden = !message;
+  }
+
+  function fieldError(inputId, message) {
+    const input = $(inputId);
+    const err = $(inputId + '-erro');
+    if (input) {
+      if (message) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+    }
+    showError(err, message);
+  }
+
+  function clearForm(form) {
+    form.querySelectorAll('[aria-invalid]').forEach((n) => n.removeAttribute('aria-invalid'));
+    form.querySelectorAll('.field-error, .form-error').forEach((n) => showError(n, ''));
+  }
+
+  // Erros do servidor por campo → mensagem ao lado do input com o mesmo name no formulário.
+  function applyFieldErrors(error, form) {
+    let first = null;
+    if (error && error.fields) {
+      for (const [field, msg] of Object.entries(error.fields)) {
+        const input = form.elements.namedItem(field);
+        if (!input || !input.id) continue;
+        fieldError(input.id, typeof msg === 'string' ? msg : 'Valor inválido.');
+        first = first || input;
+      }
+    }
+    if (first) first.focus();
+    return Boolean(first);
+  }
+
+  function toast(message, isError) {
+    const box = $('avisos');
+    const t = el('div', { className: 'toast' + (isError ? ' is-error' : ''), text: message });
+    box.append(t);
+    root.setTimeout(() => t.remove(), 5000);
+  }
+
+  function emptyItem(text, tag) {
+    return el(tag || 'li', { className: 'empty', text });
+  }
+
+  function errorBlock(message, retry) {
+    return el('div', { className: 'error-box', attrs: { role: 'alert' } },
+      el('p', { text: message }),
+      retry ? button('Tentar novamente', 'btn-ghost btn-sm', retry) : null);
+  }
+
+  function skeletons(list, n) {
+    list.replaceChildren(...Array.from({ length: n }, () => el('li', { className: 'skeleton', attrs: { 'aria-hidden': 'true' } })));
+  }
+
+  function newIdemKey() {
+    if (root.crypto && typeof root.crypto.randomUUID === 'function') return root.crypto.randomUUID();
+    const bytes = new Uint8Array(24);
+    root.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  const staffName = (id) => (state.staff.find((s) => s.id === id) || state.adminStaff.find((s) => s.id === id) || {}).name || '';
+  const serviceOf = (id) => state.services.find((s) => s.id === id) || state.adminServices.find((s) => s.id === id) || null;
+  const whenText = (instant) => C.formatDateLong(instant, state.tz) + ' · ' + C.formatTime(instant, state.tz);
+
+  // ---------------------------------------------------------------- sessão
+
+  async function refreshMe() {
+    try {
+      state.me = await api.me();
+    } catch {
+      state.me = null;
+    }
+    renderSession();
+    return state.me;
+  }
+
+  function renderSession() {
+    const me = state.me;
+    $('sessao').hidden = !me;
+    $('sessao-nome').textContent = me ? me.name : '';
+  }
+
+  async function logout() {
+    const btn = $('sair');
+    setBusy(btn, true);
+    try {
+      await api.logout();
+    } catch (e) {
+      if (e.status !== 401) toast(C.errorMessage(e), true);
+    } finally {
+      setBusy(btn, false);
+    }
+    state.me = null;
+    renderSession();
+    toast('Você saiu.');
+    route();
+  }
+
+  // ---------------------------------------------------------------- catálogo e página inicial
+
+  function loadCatalog(force) {
+    if (state.catalog && !force) return state.catalog;
+    skeletons($('lista-barbeiros'), 4);
+    skeletons($('lista-servicos'), 3);
+    $('inicio-status').replaceChildren();
+    state.catalog = Promise.all([api.shop(), api.staff(), api.services()])
+      .then(([shop, staff, services]) => {
+        state.shop = shop;
+        state.tz = (shop && shop.timezone) || state.tz;
+        state.staff = staff || [];
+        state.services = services || [];
+        renderHome();
+        return true;
+      })
+      .catch((e) => {
+        state.catalog = null;
+        $('lista-barbeiros').replaceChildren();
+        $('lista-servicos').replaceChildren();
+        $('inicio-status').replaceChildren(errorBlock('Não foi possível carregar a barbearia. ' + C.errorMessage(e), () => loadCatalog(true)));
+        $('lista-barbeiros').setAttribute('aria-busy', 'false');
+        $('lista-servicos').setAttribute('aria-busy', 'false');
+        return false;
+      });
+    return state.catalog;
+  }
+
+  function renderHome() {
+    const shop = state.shop || {};
+    const name = shop.name || 'Barber Prime';
+    for (const id of ['marca-nome', 'hero-nome', 'rodape-nome']) $(id).textContent = name;
+    doc.title = (isDemo ? 'DEMONSTRAÇÃO — ' : '') + name + ' — Agendamento';
+
+    const barbers = $('lista-barbeiros');
+    barbers.setAttribute('aria-busy', 'false');
+    barbers.replaceChildren(...(state.staff.length
+      ? state.staff.map((b) => el('li', { className: 'card barber' },
+        el('div', { className: 'avatar', text: C.initials(b.name), attrs: { 'aria-hidden': 'true' } }),
+        el('h3', { text: b.name }),
+        el('p', { text: b.bio || 'Barbeiro' })))
+      : [emptyItem('Nenhum barbeiro disponível no momento.')]));
+
+    const services = $('lista-servicos');
+    services.setAttribute('aria-busy', 'false');
+    services.replaceChildren(...(state.services.length
+      ? state.services.map((s) => el('li', { className: 'card service' },
+        icon('scissors', 'service-icon'),
+        el('div', { className: 'service-body' }, el('h3', { text: s.name }), s.description ? el('p', { text: s.description }) : null),
+        el('div', { className: 'service-meta' },
+          el('span', { className: 'price', text: C.formatMoney(s.priceCents) }),
+          el('span', { className: 'duration', text: C.formatDuration(s.durationMinutes) }))))
+      : [emptyItem('Nenhum serviço disponível no momento.')]));
+
+    const hours = $('horario-funcionamento');
+    const opening = Array.isArray(shop.openingHours) ? shop.openingHours : null;
+    if (opening) {
+      hours.replaceChildren(...WEEK_ORDER.flatMap((wd) => {
+        const h = opening.find((o) => o.weekday === wd);
+        return [el('dt', { text: C.WEEKDAYS[wd] }), el('dd', { text: h ? h.startLocal + ' – ' + h.endLocal : 'Fechado' })];
+      }));
+    } else {
+      hours.replaceChildren(el('dt', { text: 'Horários' }), el('dd', { text: 'Consulte os horários livres ao agendar' }));
+    }
+
+    const addr = $('contato-endereco');
+    addr.replaceChildren(icon('pin'), el('span', { text: shop.address || 'Endereço a configurar no painel.' }));
+    const phone = $('contato-telefone');
+    phone.replaceChildren(icon('phone'), shop.contactPhone
+      ? el('a', { text: C.formatPhoneBR(shop.contactPhone), attrs: { href: 'tel:' + shop.contactPhone } })
+      : el('span', { text: 'Telefone a configurar no painel.' }));
+    $('rodape-endereco').textContent = shop.address || '';
+  }
+
+  // ---------------------------------------------------------------- seletor de dia e horário
+
+  // Usado no agendamento e no reagendamento. Consulta GET /availability para o dia escolhido.
+  function createSlotPicker(container, opts) {
+    const name = opts.name;
+    let today = C.todayIn(state.tz);
+    let weekStart = today;
+    let date = null;
+    let value = null;
+    let request = 0;
+    let autoSkips = 0; // dias que a seleção automática ainda pode pular quando o dia não tem horário livre
+
+    const prev = el('button', { className: 'btn btn-icon', attrs: { type: 'button', 'aria-label': 'Semana anterior' }, on: { click: () => shift(-7) } }, icon('left'));
+    const next = el('button', { className: 'btn btn-icon', attrs: { type: 'button', 'aria-label': 'Próxima semana' }, on: { click: () => shift(7) } }, icon('right'));
+    const month = el('span', { className: 'calendar-month', attrs: { 'aria-live': 'polite' } });
+    const days = el('div', { className: 'days', attrs: { role: 'radiogroup', 'aria-label': 'Dia' } });
+    const title = el('h3', { className: 'slots-title' });
+    const status = el('p', { className: 'status', attrs: { role: 'status', 'aria-live': 'polite' } });
+    const slots = el('div', { className: 'slots', attrs: { role: 'radiogroup', 'aria-label': 'Horário' } });
+    container.replaceChildren(el('div', { className: 'calendar-nav' }, prev, month, next), days, title, status, slots);
+
+    function isClosed(iso) {
+      const opening = state.shop && Array.isArray(state.shop.openingHours) ? state.shop.openingHours : null;
+      return opening ? !opening.some((o) => o.weekday === C.weekdayOf(iso)) : false;
+    }
+
+    function shift(delta) {
+      const target = C.addDays(weekStart, delta);
+      if (target < today || target > C.addDays(today, MAX_WEEKS_AHEAD * 7)) return;
+      weekStart = target;
+      renderDays();
+    }
+
+    function renderDays() {
+      today = C.todayIn(state.tz);
+      if (weekStart < today) weekStart = today;
+      prev.disabled = weekStart <= today;
+      next.disabled = C.addDays(weekStart, 7) > C.addDays(today, MAX_WEEKS_AHEAD * 7);
+      month.textContent = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(new Date(weekStart + 'T12:00:00Z'));
+      const list = [];
+      for (let i = 0; i < 7; i++) {
+        const iso = C.addDays(weekStart, i);
+        const chip = C.dayChip(iso);
+        const closed = isClosed(iso);
+        const id = name + '-dia-' + i;
+        const input = el('input', { attrs: { type: 'radio', name: name + '-dia', id, value: iso, disabled: closed, 'aria-label': C.formatDateLong(iso) + (closed ? ', fechado' : '') } });
+        input.checked = iso === date;
+        input.addEventListener('change', () => selectDate(iso));
+        list.push(el('label', { className: 'choice day' + (closed ? ' day-closed' : ''), attrs: { for: id } }, input,
+          el('span', { className: 'choice-box' },
+            el('span', { className: 'day-wd', text: iso === today ? 'hoje' : chip.weekday }),
+            el('span', { className: 'day-n', text: chip.day }))));
+      }
+      days.replaceChildren(...list);
+    }
+
+    function setValue(v) {
+      value = v;
+      if (opts.onChange) opts.onChange(v);
+    }
+
+    function selectDate(iso) {
+      autoSkips = 0;
+      date = iso;
+      setValue(null);
+      load();
+    }
+
+    async function load() {
+      const serviceId = opts.getServiceId();
+      const staffId = opts.getStaffId();
+      slots.replaceChildren();
+      if (!serviceId || !staffId) {
+        title.textContent = '';
+        status.textContent = 'Escolha o serviço e o barbeiro para ver os horários livres.';
+        return;
+      }
+      if (!date) {
+        title.textContent = '';
+        status.textContent = 'Escolha um dia.';
+        return;
+      }
+      const mine = ++request;
+      title.textContent = C.formatDateLong(date);
+      status.textContent = 'Carregando horários…';
+      slots.setAttribute('aria-busy', 'true');
+      try {
+        const res = await api.availability({ staffId, serviceId, date });
+        if (mine !== request) return;
+        const free = (res && res.slots) || [];
+        if (!free.length && autoSkips > 0) {
+          autoSkips -= 1;
+          const next = nextOpenDay(date);
+          if (next) {
+            date = next;
+            if (date >= C.addDays(weekStart, 7)) weekStart = date;
+            renderDays();
+            return load();
+          }
+        }
+        autoSkips = 0;
+        status.textContent = free.length ? free.length + ' horário(s) livre(s).' : 'Nenhum horário livre neste dia. Tente outro dia ou outro barbeiro.';
+        slots.replaceChildren(...free.map((s, i) => {
+          const id = name + '-horario-' + i;
+          const label = C.formatTime(s.startAt, state.tz);
+          const input = el('input', { attrs: { type: 'radio', name: name + '-horario', id, value: s.startAt, 'aria-label': label } });
+          input.checked = s.startAt === value;
+          input.addEventListener('change', () => setValue(s.startAt));
+          return el('label', { className: 'choice slot', attrs: { for: id } }, input, el('span', { className: 'choice-box', text: label }));
+        }));
+      } catch (e) {
+        if (mine !== request) return;
+        status.textContent = '';
+        slots.replaceChildren(errorBlock('Não foi possível carregar os horários. ' + C.errorMessage(e), load));
+      } finally {
+        if (mine === request) slots.setAttribute('aria-busy', 'false');
+      }
+    }
+
+    function nextOpenDay(from) {
+      const limit = C.addDays(today, MAX_WEEKS_AHEAD * 7 + 6);
+      for (let iso = C.addDays(from, 1); iso <= limit; iso = C.addDays(iso, 1)) if (!isClosed(iso)) return iso;
+      return null;
+    }
+
+    // Sem dia escolhido, abre no primeiro dia com horário livre (até duas semanas à frente), para agendar com menos toques.
+    function autoDate() {
+      if (date) return load();
+      const first = isClosed(weekStart) ? nextOpenDay(weekStart) : weekStart;
+      if (!first) return load();
+      date = first;
+      autoSkips = 13;
+      renderDays();
+      return load();
+    }
+
+    renderDays();
+    load();
+    return {
+      refresh() { setValue(null); return autoDate(); },
+      reset() { date = null; weekStart = C.todayIn(state.tz); setValue(null); renderDays(); load(); },
+      get date() { return date; },
+      get value() { return value; },
+    };
+  }
+
+  function choice(name, id, value, checked, content, onChange, extraClass) {
+    const input = el('input', { attrs: { type: 'radio', name, id, value } });
+    input.checked = checked;
+    input.addEventListener('change', onChange);
+    return el('label', { className: 'choice' + (extraClass ? ' ' + extraClass : ''), attrs: { for: id } }, input, el('span', { className: 'choice-box' }, content));
+  }
+
+  // ---------------------------------------------------------------- agendamento
+
+  let bookingPicker = null;
+
+  async function enterBooking() {
+    $('agendar-sucesso').hidden = true;
+    $('form-agendar').hidden = false;
+    $('agendar-servicos').setAttribute('aria-busy', 'true');
+    const loaded = await loadCatalog();
+    if (state.me === undefined) await refreshMe();
+    renderIdentity();
+    if (!loaded) {
+      $('agendar-servicos').replaceChildren(errorBlock('Catálogo indisponível.', () => loadCatalog(true).then(enterBooking)));
+      return;
+    }
+    renderBookingChoices();
+    if (!bookingPicker) {
+      bookingPicker = createSlotPicker($('agendar-calendario'), {
+        name: 'agendar',
+        getServiceId: () => state.booking.serviceId,
+        getStaffId: () => state.booking.staffId,
+        onChange: () => { state.booking.idemKey = null; showError($('erro-horario'), ''); updateSummary(); },
+      });
+    }
+    updateSummary();
+  }
+
+  function renderIdentity() {
+    const me = state.me;
+    const isCustomer = me && me.role === 'customer';
+    $('dados-identificado').hidden = !isCustomer;
+    $('dados-cadastro').hidden = Boolean(isCustomer);
+    $('dados-nome').textContent = isCustomer ? me.name : '';
+  }
+
+  function renderBookingChoices() {
+    const b = state.booking;
+    if (b.serviceId && !state.services.some((s) => s.id === b.serviceId)) b.serviceId = null;
+    if (b.staffId && !state.staff.some((s) => s.id === b.staffId)) b.staffId = null;
+    const services = $('agendar-servicos');
+    services.setAttribute('aria-busy', 'false');
+    services.replaceChildren(...(state.services.length ? state.services.map((s, i) => choice('servico', 'servico-' + i, s.id, s.id === b.serviceId, [
+      icon('scissors', 'service-icon'),
+      el('span', { className: 'service-body' }, el('span', { className: 'choice-title', text: s.name }), el('span', { className: 'choice-sub', text: ' · ' + C.formatDuration(s.durationMinutes) })),
+      el('span', { className: 'choice-end price', text: C.formatMoney(s.priceCents) }),
+    ], () => pick('serviceId', s.id))) : [emptyItem('Nenhum serviço disponível.', 'p')]));
+
+    const barbers = $('agendar-barbeiros');
+    barbers.setAttribute('aria-busy', 'false');
+    barbers.replaceChildren(...(state.staff.length ? state.staff.map((s, i) => choice('barbeiro', 'barbeiro-' + i, s.id, s.id === b.staffId, [
+      el('span', { className: 'avatar', text: C.initials(s.name), attrs: { 'aria-hidden': 'true' } }),
+      el('span', { className: 'choice-title', text: s.name }),
+      s.bio ? el('span', { className: 'choice-sub', text: s.bio }) : null,
+    ], () => pick('staffId', s.id))) : [emptyItem('Nenhum barbeiro disponível.', 'p')]));
+  }
+
+  function pick(key, id) {
+    state.booking[key] = id;
+    state.booking.idemKey = null;
+    showError($(key === 'serviceId' ? 'erro-servico' : 'erro-barbeiro'), '');
+    updateSummary();
+    if (bookingPicker) bookingPicker.refresh();
+  }
+
+  function updateSummary() {
+    const b = state.booking;
+    const service = serviceOf(b.serviceId);
+    const startAt = bookingPicker ? bookingPicker.value : null;
+    const rows = [
+      ['Serviço', service ? service.name : '—'],
+      ['Barbeiro', staffName(b.staffId) || '—'],
+      ['Dia', bookingPicker && bookingPicker.date ? C.formatDateLong(bookingPicker.date) : '—'],
+      ['Horário', startAt ? C.formatTime(startAt, state.tz) : '—'],
+      ['Duração', service ? C.formatDuration(service.durationMinutes) : '—'],
+      ['Valor', service ? C.formatMoney(service.priceCents) : '—'],
+    ];
+    $('resumo').replaceChildren(...rows.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })]));
+    const step = !service ? 1 : !b.staffId ? 2 : !startAt ? 3 : 4;
+    doc.querySelectorAll('.stepper li').forEach((li) => {
+      const n = Number(li.dataset.step);
+      li.classList.toggle('done', n < step);
+      li.classList.toggle('current', n === step);
+      if (n === step) li.setAttribute('aria-current', 'step');
+      else li.removeAttribute('aria-current');
+    });
+  }
+
+  async function submitBooking(event) {
+    event.preventDefault();
+    const form = $('form-agendar');
+    clearForm(form);
+    const b = state.booking;
+    const startAt = bookingPicker ? bookingPicker.value : null;
+    let firstInvalid = null;
+    if (!b.serviceId) { showError($('erro-servico'), 'Escolha um serviço.'); firstInvalid = firstInvalid || form.querySelector('[name="servico"]'); }
+    if (!b.staffId) { showError($('erro-barbeiro'), 'Escolha um barbeiro.'); firstInvalid = firstInvalid || form.querySelector('[name="barbeiro"]'); }
+    if (!startAt) { showError($('erro-horario'), 'Escolha um dia e um horário livre.'); firstInvalid = firstInvalid || $('agendar-calendario').querySelector('input:not([disabled])'); }
+
+    const me = state.me;
+    if (me && me.role !== 'customer') {
+      showError($('agendar-erro'), 'Você está conectado como equipe. Saia para agendar como cliente.');
+      return;
+    }
+    let name = null;
+    let phone = null;
+    if (!me) {
+      const n = C.validateName($('cad-nome').value);
+      const p = C.validatePhone($('cad-telefone').value);
+      if (!n.ok) { fieldError('cad-nome', n.message); firstInvalid = firstInvalid || $('cad-nome'); }
+      if (!p.ok) { fieldError('cad-telefone', p.message); firstInvalid = firstInvalid || $('cad-telefone'); }
+      name = n.value;
+      phone = p.value;
+    }
+    const notes = $('agendar-obs').value.trim();
+    if (notes.length > 500) { showError($('agendar-erro'), 'A observação pode ter no máximo 500 caracteres.'); firstInvalid = firstInvalid || $('agendar-obs'); }
+    if (firstInvalid) {
+      firstInvalid.focus();
+      return;
+    }
+
+    const btn = $('agendar-confirmar');
+    setBusy(btn, true);
+    try {
+      if (!me) {
+        await api.register({ name, phone });
+        await refreshMe();
+        if (!state.me || state.me.role !== 'customer') {
+          showError($('agendar-erro'), 'Não foi possível concluir o cadastro neste aparelho. Se esse telefone já tem cadastro, recupere o acesso em "Minhas reservas".');
+          return;
+        }
+        renderIdentity();
+      }
+      if (!b.idemKey) b.idemKey = newIdemKey();
+      const body = { staffId: b.staffId, serviceId: b.serviceId, startAt };
+      if (notes) body.notes = notes;
+      const appt = await api.createAppointment(body, b.idemKey);
+      b.idemKey = null;
+      $('agendar-obs').value = '';
+      $('sucesso-detalhe').textContent = (appt.serviceName || (serviceOf(appt.serviceId) || {}).name || 'Atendimento') + ' com '
+        + (appt.staffName || staffName(appt.staffId)) + ', ' + whenText(appt.startAt) + '.';
+      $('form-agendar').hidden = true;
+      const ok = $('agendar-sucesso');
+      ok.hidden = false;
+      ok.focus();
+      bookingPicker.reset();
+      updateSummary();
+    } catch (e) {
+      if (e.code === 'SLOT_CONFLICT' || e.status === 409) {
+        b.idemKey = null;
+        showError($('erro-horario'), C.errorMessage(e));
+        bookingPicker.refresh();
+      } else if (e.status === 401) {
+        state.me = null;
+        renderSession();
+        renderIdentity();
+        showError($('agendar-erro'), 'Sua sessão expirou. Informe seus dados de novo.');
+      } else if (!applyFieldErrors(e, form)) {
+        showError($('agendar-erro'), C.errorMessage(e));
+      }
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---------------------------------------------------------------- minhas reservas
+
+  async function loadReservations() {
+    await loadCatalog();
+    const me = await refreshMe();
+    const isCustomer = me && me.role === 'customer';
+    $('reservas-anonimo').hidden = Boolean(isCustomer);
+    $('reservas-cliente').hidden = !isCustomer;
+    if (!isCustomer) return;
+    const list = $('lista-reservas');
+    const status = $('reservas-status');
+    status.textContent = 'Carregando reservas…';
+    list.setAttribute('aria-busy', 'true');
+    skeletons(list, 2);
+    try {
+      const res = await api.listAppointments({ limit: 100 });
+      const now = Date.now();
+      const upcoming = $('reservas-periodo').value !== 'anteriores';
+      const items = (res.data || [])
+        .filter((a) => upcoming ? Date.parse(a.endAt) >= now : Date.parse(a.endAt) < now)
+        .sort((a, b) => upcoming ? a.startAt.localeCompare(b.startAt) : b.startAt.localeCompare(a.startAt));
+      status.textContent = items.length ? items.length + ' reserva(s).' : '';
+      list.replaceChildren(...(items.length ? items.map(renderAppointment) : [emptyItem(upcoming ? 'Você não tem reservas futuras.' : 'Nenhuma reserva anterior.')]));
+    } catch (e) {
+      status.textContent = '';
+      list.replaceChildren(el('li', null, errorBlock(C.errorMessage(e), loadReservations)));
+    } finally {
+      list.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  function renderAppointment(a) {
+    const service = serviceOf(a.serviceId);
+    const li = el('li', { className: 'card appt' });
+    const actions = el('div', { className: 'appt-actions' });
+    const area = el('div');
+    const err = el('p', { className: 'form-error', attrs: { role: 'alert' } });
+    err.hidden = true;
+    li.append(
+      el('div', { className: 'appt-head' },
+        el('span', { className: 'appt-when', text: whenText(a.startAt) }),
+        el('span', { className: 'badge badge-' + a.status, text: C.STATUS_LABEL[a.status] || a.status })),
+      el('p', { className: 'appt-meta', text: [a.serviceName || (service && service.name), a.staffName || staffName(a.staffId), C.formatDuration(a.durationMinutes), C.formatMoney(a.priceCents)].filter(Boolean).join(' · ') }),
+      actions, err, area);
+    const future = Date.parse(a.startAt) > Date.now();
+    if (a.status === 'confirmed' && future) {
+      const reschedule = button('Reagendar', 'btn-ghost btn-sm', () => openReschedule(a, area, reschedule), { 'aria-expanded': 'false' });
+      const cancel = button('Cancelar', 'btn-danger btn-sm', () => {
+        actions.replaceChildren(
+          el('span', { className: 'muted small', text: 'Cancelar esta reserva?' }),
+          button('Sim, cancelar', 'btn-danger btn-sm', async (ev) => {
+            // currentTarget vira null depois do await: guarda o botão antes.
+            const btn = ev.currentTarget;
+            setBusy(btn, true);
+            try {
+              await api.cancel(a.id, { version: a.version });
+              toast('Reserva cancelada. O horário foi liberado.');
+              loadReservations();
+            } catch (e) {
+              setBusy(btn, false);
+              showError(err, C.errorMessage(e));
+            }
+          }),
+          button('Manter reserva', 'btn-ghost btn-sm', () => actions.replaceChildren(reschedule, cancel)));
+        actions.querySelector('.btn-danger').focus();
+      });
+      actions.append(reschedule, cancel);
+    }
+    return li;
+  }
+
+  function openReschedule(a, area, toggle) {
+    if (area.childElementCount) {
+      area.replaceChildren();
+      toggle.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    toggle.setAttribute('aria-expanded', 'true');
+    let staffId = a.staffId;
+    const uid = 'rem-' + a.id.slice(0, 8);
+    const select = el('select', { attrs: { id: uid + '-barbeiro' } },
+      ...state.staff.map((s) => {
+        const o = el('option', { text: s.name, attrs: { value: s.id } });
+        o.selected = s.id === staffId;
+        return o;
+      }));
+    const pickerBox = el('div', { className: 'calendar' });
+    const err = el('p', { className: 'form-error', attrs: { role: 'alert' } });
+    err.hidden = true;
+    const confirm = button('Confirmar novo horário', 'btn-gold', null);
+    confirm.disabled = true;
+    area.replaceChildren(el('div', { className: 'reschedule' },
+      el('h3', { className: 'card-title', text: 'Escolha o novo horário' }),
+      el('p', { className: 'muted small', text: 'Sua reserva atual continua valendo até a troca ser confirmada.' }),
+      el('div', { className: 'field' }, el('label', { text: 'Barbeiro', attrs: { for: uid + '-barbeiro' } }), select),
+      pickerBox, err, confirm));
+    const picker = createSlotPicker(pickerBox, {
+      name: uid,
+      getServiceId: () => a.serviceId,
+      getStaffId: () => staffId,
+      onChange: (v) => { confirm.disabled = !v; showError(err, ''); },
+    });
+    select.addEventListener('change', () => { staffId = select.value; picker.refresh(); });
+    picker.refresh();
+    confirm.addEventListener('click', async () => {
+      if (!picker.value) return;
+      setBusy(confirm, true);
+      try {
+        await api.reschedule(a.id, { staffId, startAt: picker.value, version: a.version });
+        toast('Reserva reagendada para ' + whenText(picker.value) + '.');
+        loadReservations();
+      } catch (e) {
+        setBusy(confirm, false);
+        showError(err, C.errorMessage(e));
+        if (e.code === 'SLOT_CONFLICT') picker.refresh();
+        if (e.code === 'VERSION_CONFLICT') loadReservations();
+      }
+    });
+    select.focus();
+  }
+
+  async function requestRecovery(event) {
+    event.preventDefault();
+    const form = $('form-recuperar');
+    clearForm(form);
+    const p = C.validatePhone($('rec-telefone').value);
+    if (!p.ok) {
+      fieldError('rec-telefone', p.message);
+      $('rec-telefone').focus();
+      return;
+    }
+    const btn = $('rec-enviar');
+    setBusy(btn, true);
+    try {
+      const res = await api.requestChallenge({ phone: p.value });
+      state.challengeId = res.challengeId;
+      let msg = res.message || 'Se o telefone tiver cadastro, enviaremos um código.';
+      if (isDemo && res.demoCode) msg += ' (DEMONSTRAÇÃO — sem envio de SMS: o código é ' + res.demoCode + '.)';
+      $('rec-mensagem').textContent = msg;
+      $('rec-codigo-bloco').hidden = false;
+      $('rec-codigo').focus();
+    } catch (e) {
+      if (!applyFieldErrors(e, form)) showError($('rec-erro'), C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  async function verifyRecovery() {
+    fieldError('rec-codigo', '');
+    showError($('rec-erro'), '');
+    const v = C.validateCode($('rec-codigo').value);
+    if (!v.ok) {
+      fieldError('rec-codigo', v.message);
+      $('rec-codigo').focus();
+      return;
+    }
+    const btn = $('rec-verificar');
+    setBusy(btn, true);
+    try {
+      await api.verifyChallenge({ challengeId: state.challengeId, code: v.value });
+      $('form-recuperar').reset();
+      $('rec-codigo-bloco').hidden = true;
+      toast('Acesso confirmado neste aparelho.');
+      await loadReservations();
+    } catch (e) {
+      showError($('rec-erro'), C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---------------------------------------------------------------- equipe
+
+  async function enterTeam() {
+    await loadCatalog();
+    const me = await refreshMe();
+    const staff = me && (me.role === 'admin' || me.role === 'barber');
+    $('form-equipe-login').hidden = Boolean(staff);
+    $('painel').hidden = !staff;
+    $('equipe-login-ajuda').textContent = isDemo
+      ? 'DEMONSTRAÇÃO: o primeiro acesso define o login e a senha (12+ caracteres) do administrador, guardados só neste navegador.'
+      : 'Acesso para barbeiros e administração.';
+    if (!staff) return;
+    const isAdmin = me.role === 'admin';
+    doc.querySelectorAll('.ptab[data-admin]').forEach((t) => { t.hidden = !isAdmin; });
+    if (isAdmin) {
+      try {
+        state.adminStaff = await api.adminStaff();
+      } catch (e) {
+        toast(C.errorMessage(e), true);
+      }
+    }
+    selectPanel('agenda');
+  }
+
+  async function submitLogin(event) {
+    event.preventDefault();
+    const form = $('form-equipe-login');
+    clearForm(form);
+    const v = C.validateStaffLogin($('equipe-login').value, $('equipe-senha').value);
+    if (!v.ok) {
+      if (v.fields.login) fieldError('equipe-login', v.fields.login);
+      if (v.fields.password) fieldError('equipe-senha', v.fields.password);
+      $(v.fields.login ? 'equipe-login' : 'equipe-senha').focus();
+      return;
+    }
+    const btn = $('equipe-entrar');
+    setBusy(btn, true);
+    try {
+      await api.login(v.value);
+      form.reset();
+      await enterTeam();
+      toast('Bem-vindo ao painel.');
+    } catch (e) {
+      if (!applyFieldErrors(e, form)) showError($('equipe-erro'), C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  const PANELS = ['agenda', 'servicos', 'barbeiros', 'expediente', 'bloqueios', 'barbearia'];
+
+  function selectPanel(name) {
+    for (const p of PANELS) {
+      const tab = $('ptab-' + p);
+      const on = p === name;
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+      $('painel-' + p).hidden = !on;
+    }
+    const loaders = { agenda: loadAgenda, servicos: loadAdminServices, barbeiros: loadAdminStaff, expediente: loadWorkingHours, bloqueios: loadBlocks, barbearia: loadShopForm };
+    loaders[name]();
+  }
+
+  function onPanelKey(event) {
+    const visible = PANELS.filter((p) => !$('ptab-' + p).hidden);
+    const current = visible.indexOf(event.target.id.replace('ptab-', ''));
+    let next = null;
+    if (event.key === 'ArrowRight') next = (current + 1) % visible.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + visible.length) % visible.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = visible.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    selectPanel(visible[next]);
+    $('ptab-' + visible[next]).focus();
+  }
+
+  function teamBarbers() {
+    const me = state.me;
+    if (me && me.role === 'barber') return state.staff.filter((s) => s.id === me.id).concat(state.staff.some((s) => s.id === me.id) ? [] : [{ id: me.id, name: me.name }]);
+    return (state.adminStaff.length ? state.adminStaff : state.staff).filter((s) => s.active !== false);
+  }
+
+  async function loadAgenda() {
+    if (!state.agendaDate) state.agendaDate = C.todayIn(state.tz);
+    const date = state.agendaDate;
+    $('agenda-data').value = date;
+    $('agenda-titulo').textContent = C.formatDateLong(date);
+    const status = $('agenda-status');
+    const cols = $('agenda-colunas');
+    status.textContent = 'Carregando agenda…';
+    cols.setAttribute('aria-busy', 'true');
+    const isAdmin = state.me && state.me.role === 'admin';
+    try {
+      const [appts, blocks] = await Promise.all([
+        api.listAppointments({ from: date, to: date }).then((r) => r.data || []),
+        isAdmin ? api.blocks({ from: date, to: date }) : Promise.resolve([]),
+      ]);
+      const barbers = teamBarbers();
+      status.textContent = appts.filter((a) => a.status === 'confirmed').length + ' atendimento(s) confirmado(s).';
+      cols.replaceChildren(...barbers.map((b) => {
+        const items = appts.filter((a) => a.staffId === b.id).map((a) => ({ at: a.startAt, node: agendaAppointment(a, isAdmin) }))
+          .concat((blocks || []).filter((x) => x.staffId === b.id).map((x) => ({ at: x.startAt, node: agendaBlock(x) })))
+          .sort((x, y) => x.at.localeCompare(y.at));
+        return el('section', { className: 'agenda-col', attrs: { 'aria-label': 'Agenda de ' + b.name } },
+          el('h3', null, el('span', { className: 'avatar', text: C.initials(b.name), attrs: { 'aria-hidden': 'true' } }), b.name),
+          items.length ? items.map((i) => i.node) : el('p', { className: 'muted small', text: 'Sem reservas neste dia.' }));
+      }));
+      if (!barbers.length) cols.replaceChildren(el('p', { className: 'empty', text: 'Nenhum barbeiro ativo.' }));
+    } catch (e) {
+      status.textContent = '';
+      cols.replaceChildren(errorBlock(C.errorMessage(e), loadAgenda));
+    } finally {
+      cols.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  function agendaAppointment(a, isAdmin) {
+    const actions = el('div', { className: 'appt-actions' });
+    const item = el('article', { className: 'agenda-item' + (a.status === 'cancelled' ? ' is-cancelled' : '') },
+      el('div', { className: 'appt-head' },
+        el('span', { className: 'agenda-time', text: C.formatTime(a.startAt, state.tz) + '–' + C.formatTime(a.endAt, state.tz) }),
+        el('span', { className: 'badge badge-' + a.status, text: C.STATUS_LABEL[a.status] || a.status })),
+      el('p', { text: [a.customerName, a.serviceName || (serviceOf(a.serviceId) || {}).name].filter(Boolean).join(' · ') }),
+      a.notes ? el('p', { className: 'small', text: 'Obs.: ' + a.notes }) : null,
+      actions);
+    const act = async (ev, fn, msg) => {
+      setBusy(ev.currentTarget, true);
+      try {
+        await fn();
+        toast(msg);
+      } catch (e) {
+        toast(C.errorMessage(e), true);
+      }
+      loadAgenda();
+    };
+    if (a.status === 'confirmed') {
+      if (Date.parse(a.startAt) <= Date.now()) {
+        actions.append(
+          button('Concluído', 'btn-ghost btn-sm', (ev) => act(ev, () => api.setStatus(a.id, { status: 'completed', version: a.version }), 'Atendimento concluído.')),
+          button('Não compareceu', 'btn-ghost btn-sm', (ev) => act(ev, () => api.setStatus(a.id, { status: 'no_show', version: a.version }), 'Falta registrada.')));
+      }
+      if (isAdmin) {
+        actions.append(button('Cancelar', 'btn-danger btn-sm', (ev) => {
+          const b = ev.currentTarget;
+          if (b.dataset.confirm !== '1') {
+            b.dataset.confirm = '1';
+            b.textContent = 'Confirmar cancelamento';
+            return;
+          }
+          act(ev, () => api.cancel(a.id, { version: a.version }), 'Reserva cancelada.');
+        }));
+      }
+    }
+    return item;
+  }
+
+  function agendaBlock(x) {
+    return el('article', { className: 'agenda-item is-block' },
+      el('span', { className: 'agenda-time', text: C.formatTime(x.startAt, state.tz) + '–' + C.formatTime(x.endAt, state.tz) }),
+      el('p', { text: 'Bloqueado' + (x.reason ? ' · ' + x.reason : '') }));
+  }
+
+  function moveAgenda(days) {
+    state.agendaDate = C.addDays(state.agendaDate || C.todayIn(state.tz), days);
+    loadAgenda();
+  }
+
+  // ---- serviços (admin)
+
+  async function loadAdminServices() {
+    const list = $('admin-servicos');
+    skeletons(list, 2);
+    try {
+      state.adminServices = await api.adminServices();
+      list.replaceChildren(...(state.adminServices.length ? state.adminServices.map((s) => el('li', { className: 'card admin-item' },
+        el('div', { className: 'grow' },
+          el('strong', { text: s.name }),
+          el('p', { className: 'muted small', text: C.formatDuration(s.durationMinutes) + ' · ' + C.formatMoney(s.priceCents) + (s.active ? '' : ' · inativo') })),
+        button('Editar', 'btn-ghost btn-sm', () => editService(s), { 'aria-label': 'Editar ' + s.name }),
+        button(s.active ? 'Desativar' : 'Ativar', 'btn-ghost btn-sm', async (ev) => {
+          setBusy(ev.currentTarget, true);
+          try {
+            await api.updateService(s.id, { active: !s.active, version: s.version });
+            toast(s.active ? 'Serviço desativado.' : 'Serviço ativado.');
+            await loadCatalog(true);
+          } catch (e) {
+            toast(C.errorMessage(e), true);
+          }
+          loadAdminServices();
+        }, { 'aria-label': (s.active ? 'Desativar ' : 'Ativar ') + s.name }))) : [emptyItem('Nenhum serviço cadastrado.')]));
+    } catch (e) {
+      list.replaceChildren(el('li', null, errorBlock(C.errorMessage(e), loadAdminServices)));
+    }
+  }
+
+  function editService(s) {
+    clearForm($('form-servico'));
+    $('servico-id').value = s ? s.id : '';
+    $('servico-nome').value = s ? s.name : '';
+    $('servico-duracao').value = s ? String(s.durationMinutes) : '';
+    $('servico-preco').value = s ? (s.priceCents / 100).toFixed(2).replace('.', ',') : '';
+    $('servico-form-titulo').textContent = s ? 'Editar serviço' : 'Novo serviço';
+    $('servico-cancelar').hidden = !s;
+    if (s) $('servico-nome').focus();
+  }
+
+  async function submitService(event) {
+    event.preventDefault();
+    const form = $('form-servico');
+    clearForm(form);
+    const priceCents = C.parseMoneyToCents($('servico-preco').value);
+    const durationText = $('servico-duracao').value.trim();
+    const input = {
+      name: $('servico-nome').value,
+      durationMinutes: /^\d+$/.test(durationText) ? Number(durationText) : NaN,
+      priceCents: priceCents === null ? NaN : priceCents,
+    };
+    const v = C.validateServiceInput(input);
+    const map = { name: 'servico-nome', durationMinutes: 'servico-duracao', priceCents: 'servico-preco' };
+    if (!v.ok) {
+      for (const [k, msg] of Object.entries(v.fields)) fieldError(map[k], msg);
+      $(map[Object.keys(v.fields)[0]]).focus();
+      return;
+    }
+    const id = $('servico-id').value;
+    const btn = $('servico-salvar');
+    setBusy(btn, true);
+    try {
+      if (id) {
+        const current = state.adminServices.find((s) => s.id === id);
+        await api.updateService(id, Object.assign({ version: current ? current.version : 1 }, v.value));
+        toast('Serviço atualizado.');
+      } else {
+        await api.createService(v.value);
+        toast('Serviço criado.');
+      }
+      editService(null);
+      await loadCatalog(true);
+      loadAdminServices();
+    } catch (e) {
+      if (!applyFieldErrors(e, form)) showError($('servico-erro'), C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---- barbeiros (admin)
+
+  async function loadAdminStaff() {
+    const list = $('admin-barbeiros');
+    skeletons(list, 4);
+    try {
+      state.adminStaff = await api.adminStaff();
+      list.replaceChildren(...(state.adminStaff.length ? state.adminStaff.map(staffEditor) : [emptyItem('Nenhum barbeiro cadastrado.')]));
+    } catch (e) {
+      list.replaceChildren(el('li', null, errorBlock(C.errorMessage(e), loadAdminStaff)));
+    }
+  }
+
+  function staffEditor(s) {
+    const uid = 'bb-' + s.id.slice(0, 8);
+    const name = el('input', { attrs: { id: uid + '-nome', type: 'text', maxlength: 100, value: s.name, 'aria-describedby': uid + '-nome-erro' } });
+    const bio = el('input', { attrs: { id: uid + '-bio', type: 'text', maxlength: 300, value: s.bio || '' } });
+    const active = el('input', { attrs: { id: uid + '-ativo', type: 'checkbox' } });
+    active.checked = s.active !== false;
+    const err = el('p', { className: 'form-error', attrs: { role: 'alert' } });
+    err.hidden = true;
+    const save = button('Salvar', 'btn-gold btn-sm', null);
+    const form = el('form', { className: 'card', attrs: { novalidate: true, 'aria-label': 'Editar ' + s.name } },
+      el('div', { className: 'form-row' },
+        el('div', { className: 'field' }, el('label', { text: 'Nome', attrs: { for: uid + '-nome' } }), name,
+          el('p', { className: 'field-error', attrs: { id: uid + '-nome-erro', hidden: true } })),
+        el('div', { className: 'field' }, el('label', { text: 'Especialidade', attrs: { for: uid + '-bio' } }), bio)),
+      el('div', { className: 'admin-item' },
+        el('label', { className: 'inline-field', attrs: { for: uid + '-ativo' } }, active, 'Atende clientes'),
+        save),
+      err);
+    save.type = 'submit';
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      clearForm(form);
+      const n = C.validateName(name.value);
+      if (!n.ok) {
+        fieldError(uid + '-nome', n.message);
+        name.focus();
+        return;
+      }
+      const body = { version: s.version };
+      if (n.value !== s.name) body.name = n.value;
+      if (bio.value.trim() !== (s.bio || '')) body.bio = bio.value.trim();
+      if (active.checked !== (s.active !== false)) body.active = active.checked;
+      if (Object.keys(body).length === 1) {
+        toast('Nada para salvar.');
+        return;
+      }
+      setBusy(save, true);
+      try {
+        await api.updateStaff(s.id, body);
+        toast('Barbeiro atualizado.');
+        await loadCatalog(true);
+        loadAdminStaff();
+      } catch (e) {
+        setBusy(save, false);
+        showError(err, e.code === 'SCHEDULE_CONFLICT' ? 'Este barbeiro tem reservas futuras confirmadas. Remaneje-as antes de desativá-lo.' : C.errorMessage(e));
+      }
+    });
+    return el('li', null, form);
+  }
+
+  // ---- expediente (admin)
+
+  function fillBarberSelect(select) {
+    const current = select.value;
+    const barbers = state.adminStaff.length ? state.adminStaff : state.staff;
+    select.replaceChildren(...barbers.map((b) => el('option', { text: b.name + (b.active === false ? ' (inativo)' : ''), attrs: { value: b.id } })));
+    if (barbers.some((b) => b.id === current)) select.value = current;
+  }
+
+  async function loadWorkingHours() {
+    const select = $('expediente-barbeiro');
+    fillBarberSelect(select);
+    const week = $('expediente-dias');
+    showError($('expediente-erro'), '');
+    if (!select.value) {
+      week.replaceChildren(el('p', { className: 'empty', text: 'Nenhum barbeiro cadastrado.' }));
+      return;
+    }
+    week.replaceChildren(el('p', { className: 'status', text: 'Carregando expediente…' }));
+    try {
+      const periods = await api.workingHours(select.value);
+      week.replaceChildren(...WEEK_ORDER.map((wd) => {
+        const p = (periods || []).find((x) => x.weekday === wd);
+        const id = 'exp-' + wd;
+        const on = el('input', { attrs: { type: 'checkbox', id: id + '-on' } });
+        on.checked = Boolean(p);
+        const start = el('input', { attrs: { type: 'time', id: id + '-ini', step: 900, value: p ? p.startLocal : '09:00', 'aria-label': C.WEEKDAYS[wd] + ': início' } });
+        const end = el('input', { attrs: { type: 'time', id: id + '-fim', step: 900, value: p ? p.endLocal : '19:00', 'aria-label': C.WEEKDAYS[wd] + ': fim' } });
+        const sync = () => { start.disabled = !on.checked; end.disabled = !on.checked; };
+        on.addEventListener('change', sync);
+        sync();
+        return el('div', { className: 'week-row', attrs: { 'data-weekday': wd } },
+          el('label', { className: 'day-toggle', attrs: { for: id + '-on' } }, on, C.WEEKDAYS[wd]), start, end);
+      }));
+    } catch (e) {
+      week.replaceChildren(errorBlock(C.errorMessage(e), loadWorkingHours));
+    }
+  }
+
+  async function submitWorkingHours(event) {
+    event.preventDefault();
+    const err = $('expediente-erro');
+    showError(err, '');
+    const periods = [];
+    for (const wd of WEEK_ORDER) {
+      if (!$('exp-' + wd + '-on') || !$('exp-' + wd + '-on').checked) continue;
+      const startLocal = $('exp-' + wd + '-ini').value;
+      const endLocal = $('exp-' + wd + '-fim').value;
+      if (!/^\d{2}:\d{2}$/.test(startLocal) || !/^\d{2}:\d{2}$/.test(endLocal) || endLocal <= startLocal) {
+        showError(err, C.WEEKDAYS[wd] + ': o fim precisa ser depois do início.');
+        $('exp-' + wd + '-fim').focus();
+        return;
+      }
+      periods.push({ weekday: wd, startLocal, endLocal });
+    }
+    const btn = $('expediente-salvar');
+    setBusy(btn, true);
+    try {
+      await api.replaceWorkingHours($('expediente-barbeiro').value, { periods });
+      toast('Expediente salvo.');
+      await loadCatalog(true);
+    } catch (e) {
+      showError(err, e.code === 'SCHEDULE_CONFLICT' ? 'Há reservas confirmadas fora do novo expediente. Remaneje-as antes de salvar.' : C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---- bloqueios (admin)
+
+  async function loadBlocks() {
+    fillBarberSelect($('bloqueio-barbeiro'));
+    if (!$('bloqueio-data').value) $('bloqueio-data').value = C.todayIn(state.tz);
+    const list = $('admin-bloqueios');
+    skeletons(list, 1);
+    const from = C.todayIn(state.tz);
+    try {
+      const blocks = await api.blocks({ from, to: C.addDays(from, 30) });
+      list.replaceChildren(...(blocks.length ? blocks.map((b) => el('li', { className: 'card admin-item' },
+        el('div', { className: 'grow' },
+          el('strong', { text: staffName(b.staffId) || 'Barbeiro' }),
+          el('p', { className: 'muted small', text: whenText(b.startAt) + '–' + C.formatTime(b.endAt, state.tz) + (b.reason ? ' · ' + b.reason : '') })),
+        button('Remover', 'btn-danger btn-sm', async (ev) => {
+          setBusy(ev.currentTarget, true);
+          try {
+            await api.deleteBlock(b.id, b.version);
+            toast('Bloqueio removido.');
+          } catch (e) {
+            toast(C.errorMessage(e), true);
+          }
+          loadBlocks();
+        }, { 'aria-label': 'Remover bloqueio de ' + whenText(b.startAt) }))) : [emptyItem('Nenhum bloqueio nos próximos 30 dias.')]));
+    } catch (e) {
+      list.replaceChildren(el('li', null, errorBlock(C.errorMessage(e), loadBlocks)));
+    }
+  }
+
+  async function submitBlock(event) {
+    event.preventDefault();
+    const form = $('form-bloqueio');
+    clearForm(form);
+    const date = $('bloqueio-data').value;
+    const startAt = C.zonedToInstant(date, $('bloqueio-inicio').value, state.tz);
+    const endAt = C.zonedToInstant(date, $('bloqueio-fim').value, state.tz);
+    if (!startAt || !endAt) {
+      showError($('bloqueio-erro'), 'Informe data, início e fim.');
+      return;
+    }
+    if (endAt <= startAt) {
+      fieldError('bloqueio-fim', 'O fim precisa ser depois do início.');
+      $('bloqueio-fim').focus();
+      return;
+    }
+    const btn = $('bloqueio-salvar');
+    setBusy(btn, true);
+    try {
+      await api.createBlock({ staffId: $('bloqueio-barbeiro').value, startAt, endAt, reason: $('bloqueio-motivo').value.trim() });
+      toast('Horário bloqueado.');
+      $('bloqueio-motivo').value = '';
+      loadBlocks();
+    } catch (e) {
+      showError($('bloqueio-erro'), e.code === 'SLOT_CONFLICT' ? 'Já existe reserva ou bloqueio nesse intervalo. Nada foi cancelado.' : C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---- barbearia (admin)
+
+  async function loadShopForm() {
+    // Bloqueia a edição até os dados chegarem, para o carregamento não sobrescrever o que for digitado.
+    const controls = ['barbearia-nome', 'barbearia-endereco', 'barbearia-telefone', 'barbearia-salvar'].map($);
+    for (const c of controls) c.disabled = true;
+    try {
+      state.shop = Object.assign({}, state.shop, await api.shop());
+    } catch (e) {
+      showError($('barbearia-erro'), C.errorMessage(e));
+    } finally {
+      for (const c of controls) c.disabled = false;
+    }
+    const shop = state.shop || {};
+    $('barbearia-nome').value = shop.name || '';
+    $('barbearia-endereco').value = shop.address || '';
+    $('barbearia-telefone').value = shop.contactPhone ? C.formatPhoneBR(shop.contactPhone) : '';
+  }
+
+  async function submitShop(event) {
+    event.preventDefault();
+    const form = $('form-barbearia');
+    clearForm(form);
+    const name = $('barbearia-nome').value.trim();
+    const address = $('barbearia-endereco').value.trim();
+    const phoneText = $('barbearia-telefone').value.trim();
+    if (name.length < 1 || name.length > 100) {
+      showError($('barbearia-erro'), 'Informe o nome da barbearia (até 100 caracteres).');
+      $('barbearia-nome').focus();
+      return;
+    }
+    let contactPhone = null;
+    if (phoneText) {
+      contactPhone = C.normalizePhoneBR(phoneText);
+      if (!contactPhone) {
+        fieldError('barbearia-telefone', 'Telefone inválido. Use DDD, por exemplo (11) 3456-7890.');
+        $('barbearia-telefone').focus();
+        return;
+      }
+    }
+    const btn = $('barbearia-salvar');
+    setBusy(btn, true);
+    try {
+      await api.updateShop({ version: state.shop.version, name, address, contactPhone });
+      toast('Dados da barbearia salvos.');
+      await loadCatalog(true);
+      loadShopForm();
+    } catch (e) {
+      if (!applyFieldErrors(e, form)) showError($('barbearia-erro'), C.errorMessage(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ---------------------------------------------------------------- navegação
+
+  function route() {
+    const name = (root.location.hash || '#inicio').slice(1);
+    if (name === 'conteudo') return;
+    const view = VIEWS.includes(name) ? name : 'inicio';
+    for (const v of VIEWS) $('view-' + v).hidden = v !== view;
+    doc.querySelectorAll('[data-nav]').forEach((a) => {
+      if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+    if (view === 'agendar') enterBooking();
+    else if (view === 'reservas') loadReservations();
+    else if (view === 'equipe') enterTeam();
+    if (!state.firstRoute) {
+      const heading = $('titulo-' + view);
+      if (heading) heading.focus({ preventScroll: true });
+      root.scrollTo(0, 0);
+    }
+    state.firstRoute = false;
+  }
+
+  function bind() {
+    root.addEventListener('hashchange', route);
+    $('sair').addEventListener('click', logout);
+    $('form-agendar').addEventListener('submit', submitBooking);
+    $('agendar-novo').addEventListener('click', () => {
+      $('agendar-sucesso').hidden = true;
+      $('form-agendar').hidden = false;
+      $('titulo-agendar').focus();
+    });
+    for (const id of ['cad-telefone', 'rec-telefone', 'barbearia-telefone']) {
+      $(id).addEventListener('input', (ev) => { ev.target.value = C.maskPhoneInput(ev.target.value); });
+    }
+    $('cad-nome').addEventListener('blur', () => { if ($('cad-nome').value) { const v = C.validateName($('cad-nome').value); fieldError('cad-nome', v.ok ? '' : v.message); } });
+    $('cad-telefone').addEventListener('blur', () => { if ($('cad-telefone').value) { const v = C.validatePhone($('cad-telefone').value); fieldError('cad-telefone', v.ok ? '' : v.message); } });
+    $('reservas-periodo').addEventListener('change', loadReservations);
+    $('form-recuperar').addEventListener('submit', requestRecovery);
+    $('rec-verificar').addEventListener('click', verifyRecovery);
+    $('form-equipe-login').addEventListener('submit', submitLogin);
+    for (const p of PANELS) {
+      $('ptab-' + p).addEventListener('click', () => selectPanel(p));
+      $('ptab-' + p).addEventListener('keydown', onPanelKey);
+    }
+    $('agenda-anterior').addEventListener('click', () => moveAgenda(-1));
+    $('agenda-proximo').addEventListener('click', () => moveAgenda(1));
+    $('agenda-hoje').addEventListener('click', () => { state.agendaDate = C.todayIn(state.tz); loadAgenda(); });
+    $('agenda-data').addEventListener('change', (ev) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(ev.target.value)) { state.agendaDate = ev.target.value; loadAgenda(); }
+    });
+    $('form-servico').addEventListener('submit', submitService);
+    $('servico-cancelar').addEventListener('click', () => editService(null));
+    $('form-expediente').addEventListener('submit', submitWorkingHours);
+    $('expediente-barbeiro').addEventListener('change', loadWorkingHours);
+    $('form-bloqueio').addEventListener('submit', submitBlock);
+    $('form-barbearia').addEventListener('submit', submitShop);
+    const reset = $('demo-reset');
+    if (reset && isDemo) {
+      reset.addEventListener('click', () => {
+        if (reset.dataset.confirm !== '1') {
+          reset.dataset.confirm = '1';
+          reset.textContent = 'Confirmar: apagar tudo';
+          return;
+        }
+        api.resetDemo();
+        root.location.hash = '#inicio';
+        root.location.reload();
+      });
+    }
+  }
+
+  function start() {
+    doc.body.dataset.mode = isDemo ? 'demo' : 'api';
+    bind();
+    loadCatalog();
+    refreshMe();
+    route();
+  }
+
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start);
+  else start();
+})(window);
+
+</script>
+</body>
+</html>

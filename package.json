@@ -1,0 +1,23 @@
+{
+  "name": "barber-prime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Barber Prime: agendamento para barbearia com API Node, PostgreSQL (pg ou PGlite embutido) e frontend web.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node --watch server/index.mjs",
+    "test": "node --test",
+    "check": "node -e \"const {execFileSync:x}=require('child_process');const {readdirSync:r}=require('fs');for(const d of ['server','server/auth','server/booking','server/catalog','tests/backend','tests/arquitetura','scripts'])for(const f of r(d))if(f.endsWith('.mjs'))x(process.execPath,['--check',d+'/'+f],{stdio:'inherit'})\"",
+    "build": "node scripts/build-pages.mjs",
+    "e2e": "node scripts/e2e-servidor.mjs",
+    "ci": "npm run check && npm test && npm run build"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "pg": "^8.23.1"
+  }
+}

@@ -1,0 +1,1046 @@
+{
+  "versao": 1,
+  "escopo": "operacional",
+  "etapa": "integracao",
+  "escopoPedido": "operacional",
+  "prontoParaHomologacao": true,
+  "namespaceRequisitos": "Requisitos da matriz de homologação do pedido (R1..R40 visíveis; itens além de R40 não foram listados no pedido e não foram fabricados).",
+  "servidor": {
+    "comando": "npm start",
+    "ambiente": {
+      "ADMIN_LOGIN": "gerente",
+      "ADMIN_PASSWORD": "senha-do-teste-homologacao"
+    }
+  },
+  "fluxos": [
+    {
+      "id": "BE-TESTES",
+      "requisito": "R20",
+      "tipo": "comando",
+      "comando": "npm test",
+      "codigo": 0,
+      "saidaContem": [
+        "backend:",
+        "bootstrap:",
+        "dados:",
+        "integração: ponta a ponta no servidor real",
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "id": "BE-INTEGRACAO",
+      "requisito": "R19",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/health",
+          "status": 200,
+          "contem": [
+            "\"operational\":true",
+            "\"database\":\"ok\""
+          ]
+        },
+        {
+          "metodo": "GET",
+          "caminho": "/",
+          "status": 200,
+          "contem": [
+            "Barber Prime"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-BARBEIROS",
+      "requisito": "R34",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/staff",
+          "status": 200,
+          "contem": [
+            "Rafael Monteiro",
+            "Diego Alencar",
+            "Lucas Ferraz",
+            "Bruno Tavares"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-SERVICOS",
+      "requisito": "R35",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/services",
+          "status": 200,
+          "contem": [
+            "Corte masculino",
+            "Barba completa"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-PRECOS",
+      "requisito": "R36",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/services",
+          "status": 200,
+          "contem": [
+            "\"priceCents\":6000",
+            "\"durationMinutes\":45"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-FUNCIONAMENTO",
+      "requisito": "R37",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/shop",
+          "status": 200,
+          "contem": [
+            "openingHours",
+            "\"startLocal\":\"09:00\"",
+            "\"endLocal\":\"19:00\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-CONTATO",
+      "requisito": "R38",
+      "tipo": "teste",
+      "nome": "backend: login da equipe, papéis e painel administrativo"
+    },
+    {
+      "id": "BE-CALENDARIO",
+      "requisito": "R13",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/availability?staffId=6f1d2c3a-0b4e-4c5d-8e9f-0000000000b1&serviceId=6f1d2c3a-0b4e-4c5d-8e9f-0000000000c1&date=2027-06-01",
+          "status": 200,
+          "contem": [
+            "\"slots\"",
+            "\"timezone\":\"America/Sao_Paulo\""
+          ]
+        },
+        {
+          "metodo": "GET",
+          "caminho": "/api/availability?staffId=nao-uuid&serviceId=6f1d2c3a-0b4e-4c5d-8e9f-0000000000c1&date=2027-06-01",
+          "status": 400,
+          "contem": [
+            "VALIDATION_ERROR"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-HORARIOS",
+      "requisito": "R14",
+      "tipo": "teste",
+      "nome": "backend: catálogo público traz barbearia, horário de funcionamento, 4 barbeiros e serviços com preço e duração"
+    },
+    {
+      "id": "BE-AGENDAMENTO",
+      "requisito": "R15",
+      "tipo": "teste",
+      "nome": "backend: agendamento, conflito de horário, isolamento entre clientes, reagendamento e cancelamento"
+    },
+    {
+      "id": "BE-CONFLITOS",
+      "requisito": "R16",
+      "tipo": "teste",
+      "nome": "backend: reservas simultâneas no mesmo horário geram exatamente uma confirmação"
+    },
+    {
+      "id": "BE-PAINEL",
+      "requisito": "R18",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/admin/staff",
+          "status": 401,
+          "contem": [
+            "UNAUTHENTICATED"
+          ]
+        },
+        {
+          "metodo": "POST",
+          "caminho": "/api/auth/session",
+          "corpo": {
+            "login": "gerente",
+            "password": "senha-do-teste-homologacao"
+          },
+          "status": 200,
+          "contem": [
+            "\"role\":\"admin\""
+          ]
+        },
+        {
+          "metodo": "GET",
+          "caminho": "/api/admin/staff",
+          "status": 200,
+          "contem": [
+            "Rafael Monteiro"
+          ]
+        },
+        {
+          "reiniciar": true
+        },
+        {
+          "metodo": "GET",
+          "caminho": "/api/admin/staff",
+          "status": 200,
+          "contem": [
+            "Bruno Tavares"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BE-ACESSO-CLIENTE",
+      "requisito": "R39",
+      "tipo": "http",
+      "passos": [
+        {
+          "metodo": "GET",
+          "caminho": "/api/appointments",
+          "status": 401,
+          "contem": [
+            "UNAUTHENTICATED"
+          ]
+        },
+        {
+          "metodo": "GET",
+          "caminho": "/api/auth/session",
+          "status": 200,
+          "contem": [
+            "\"data\":null"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "INT-E2E-PROCESSO",
+      "requisito": "R3",
+      "tipo": "comando",
+      "comando": "node scripts/e2e-servidor.mjs",
+      "codigo": 0,
+      "saidaContem": [
+        "✔ agendamento confirmado",
+        "✔ conflito de horário recusado com 409",
+        "✔ cliente não consulta nem cancela reserva de terceiro",
+        "✔ reagendamento para outro horário livre",
+        "✔ painel: agenda da equipe mostra a reserva",
+        "✔ após reiniciar o processo: sessão e reserva persistem",
+        "E2E OK: 22 verificações"
+      ]
+    },
+    {
+      "id": "INT-NAO-SIMULADO",
+      "requisito": "R2",
+      "tipo": "comando",
+      "comando": "npm run e2e",
+      "codigo": 0,
+      "saidaContem": [
+        "✔ frontend servido em / com o cliente da API",
+        "✔ cadastro só com nome e telefone (navegador com CSRF)",
+        "✔ após reiniciar o processo: sessão e reserva persistem",
+        "E2E OK"
+      ]
+    },
+    {
+      "id": "INT-TESTE-E2E",
+      "requisito": "R19",
+      "tipo": "teste",
+      "nome": "integração: ponta a ponta no servidor real em processo separado, com reinício e persistência"
+    },
+    {
+      "id": "INT-REGISTRO-AGENTES",
+      "requisito": "R1",
+      "tipo": "arquivo",
+      "caminho": "docs/INTEGRACAO.md",
+      "contem": [
+        "agente especialista",
+        "skills do Studio",
+        "Prova de ponta a ponta"
+      ]
+    },
+    {
+      "id": "INT-LIMITACOES",
+      "requisito": "R6",
+      "tipo": "arquivo",
+      "caminho": "docs/INTEGRACAO.md",
+      "contem": [
+        "Limitações e pendências reais",
+        "URL pública não publicada",
+        "SMS não validado no provedor"
+      ]
+    },
+    {
+      "id": "PESQ-GITHUB-TOPICS",
+      "requisito": "R7",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA.md",
+      "contem": [
+        "https://github.com/topics/barbershop",
+        "https://github.com/BridgeLine-Services/Main-Barber-Template-",
+        "https://github.com/clawnify/OpenSalon",
+        "Licença"
+      ]
+    },
+    {
+      "id": "PESQ-DOCS-OFICIAIS",
+      "requisito": "R8",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA-COMPLEMENTAR.md",
+      "contem": [
+        "https://react.dev/learn/thinking-in-react",
+        "https://tailwindcss.com/docs/detecting-classes-in-source-files",
+        "https://fullcalendar.io/docs/premium"
+      ]
+    },
+    {
+      "id": "PESQ-FORUNS",
+      "requisito": "R9",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA-COMPLEMENTAR.md",
+      "contem": [
+        "https://stackoverflow.com/questions/7845160/preventing-double-booking",
+        "CC BY-SA 3.0"
+      ]
+    },
+    {
+      "id": "PESQ-PLATAFORMAS",
+      "requisito": "R10",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA-COMPLEMENTAR.md",
+      "contem": [
+        "https://biz.booksy.com/en-us/features",
+        "https://www.fresha.com/for-business",
+        "https://squareup.com/us/en/appointments/features"
+      ]
+    },
+    {
+      "id": "PESQ-CALENDARIOS",
+      "requisito": "R11",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA-COMPLEMENTAR.md",
+      "contem": [
+        "https://fullcalendar.io/license",
+        "Agenda por barbeiro"
+      ]
+    },
+    {
+      "id": "PESQ-STACK-MODERNA",
+      "requisito": "R12",
+      "tipo": "arquivo",
+      "caminho": "docs/PESQUISA.md",
+      "contem": [
+        "Next.js",
+        "Tailwind",
+        "PostgreSQL",
+        "https://github.com/calcom/cal.diy"
+      ]
+    },
+    {
+      "id": "EST-DOURADO",
+      "requisito": "R22",
+      "tipo": "arquivo",
+      "caminho": "public/styles.css",
+      "contem": [
+        "--gold: #c9a54c;",
+        "--gold-dim: rgba(201, 165, 76, 0.14);"
+      ]
+    },
+    {
+      "id": "EST-TIPOGRAFIA",
+      "requisito": "R23",
+      "tipo": "arquivo",
+      "caminho": "public/styles.css",
+      "contem": [
+        "--font-display: \"Cormorant Garamond\"",
+        "--font-sans: \"Inter\""
+      ]
+    },
+    {
+      "id": "EST-ICONES",
+      "requisito": "R24",
+      "tipo": "arquivo",
+      "caminho": "public/index.html",
+      "contem": [
+        "<symbol id=\"i-scissors\"",
+        "<symbol id=\"i-cal\"",
+        "stroke-width=\"1.5\""
+      ]
+    },
+    {
+      "id": "EST-CARTOES",
+      "requisito": "R25",
+      "tipo": "arquivo",
+      "caminho": "public/styles.css",
+      "contem": [
+        "--radius: 16px;",
+        "border-radius: var(--radius)"
+      ]
+    },
+    {
+      "id": "EST-ANIMACOES",
+      "requisito": "R26",
+      "tipo": "arquivo",
+      "caminho": "public/styles.css",
+      "contem": [
+        "@keyframes fade-in",
+        "transition: transform 0.18s var(--ease)",
+        "@media (prefers-reduced-motion: reduce)"
+      ]
+    },
+    {
+      "id": "EST-BOTAO-AGENDAR",
+      "requisito": "R27",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Agendar horário"
+        },
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        }
+      ]
+    },
+    {
+      "id": "EST-CALENDARIO-LEGIVEL",
+      "requisito": "R29",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        }
+      ]
+    },
+    {
+      "id": "BE-PERSISTENCIA",
+      "requisito": "R2",
+      "tipo": "teste",
+      "nome": "backend: reservas e sessão persistem após reiniciar o servidor"
+    },
+    {
+      "id": "BE-NOME",
+      "requisito": "R40",
+      "tipo": "teste",
+      "nome": "backend: cadastro pede só nome e telefone, valida entrada e não duplica nem entrega sessão de cadastro existente"
+    },
+    {
+      "id": "BE-PROVA-POSSE",
+      "requisito": "R6",
+      "tipo": "integracao",
+      "situacao": "implementada",
+      "dependencia": "SMS pela API da Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN ou API key, TWILIO_FROM); sem configuração a recuperação de acesso responde 503 PROVIDER_UNAVAILABLE"
+    },
+    {
+      "id": "FE-TELA-MARCA",
+      "requisito": "R31",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "DEMONSTRAÇÃO"
+        },
+        {
+          "esperarTexto": "Barber Prime"
+        },
+        {
+          "esperarTexto": "Barbearia premium"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-BANNER",
+      "requisito": "R32",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Corte, barba e acabamento com hora marcada"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-BOTAO-AGENDAR",
+      "requisito": "R33",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Agendar horário"
+        },
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-BARBEIROS",
+      "requisito": "R34",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Rafael Monteiro"
+        },
+        {
+          "esperarTexto": "Diego Alencar"
+        },
+        {
+          "esperarTexto": "Lucas Ferraz"
+        },
+        {
+          "esperarTexto": "Bruno Tavares"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-SERVICOS",
+      "requisito": "R35",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Corte masculino"
+        },
+        {
+          "esperarTexto": "Barba completa"
+        },
+        {
+          "esperarTexto": "Corte + barba"
+        },
+        {
+          "esperarTexto": "Pezinho e sobrancelha"
+        },
+        {
+          "esperarTexto": "Pigmentação"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-PRECOS",
+      "requisito": "R36",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "R$"
+        },
+        {
+          "esperarTexto": "60,00"
+        },
+        {
+          "esperarTexto": "45 min"
+        },
+        {
+          "esperarTexto": "95,00"
+        },
+        {
+          "esperarTexto": "1h15"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-FUNCIONAMENTO",
+      "requisito": "R37",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Horário de funcionamento"
+        },
+        {
+          "esperarTexto": "09:00 – 19:00"
+        },
+        {
+          "esperarTexto": "Fechado"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-NAVEGACAO",
+      "requisito": "R28",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "a[data-nav=\"agendar\"]"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        },
+        {
+          "clicar": "a[data-nav=\"reservas\"]"
+        },
+        {
+          "esperarTexto": "Minhas reservas"
+        },
+        {
+          "clicar": "a[data-nav=\"equipe\"]"
+        },
+        {
+          "esperarTexto": "Área da equipe"
+        },
+        {
+          "clicar": "a[data-nav=\"inicio\"]"
+        },
+        {
+          "esperarTexto": "Nossos barbeiros"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-CALENDARIO",
+      "requisito": "R13",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-VALIDACAO",
+      "requisito": "R40",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        },
+        {
+          "clicar": "#agendar-horario-0"
+        },
+        {
+          "preencher": "#cad-nome",
+          "valor": "A"
+        },
+        {
+          "preencher": "#cad-telefone",
+          "valor": "123"
+        },
+        {
+          "clicar": "#agendar-confirmar"
+        },
+        {
+          "esperarTexto": "Informe seu nome"
+        },
+        {
+          "esperarTexto": "Informe um telefone válido"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-AGENDAMENTO",
+      "requisito": "R15",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        },
+        {
+          "clicar": "#agendar-horario-0"
+        },
+        {
+          "preencher": "#cad-nome",
+          "valor": "Cliente Homologação"
+        },
+        {
+          "preencher": "#cad-telefone",
+          "valor": "(11) 91234-5678"
+        },
+        {
+          "clicar": "#agendar-confirmar"
+        },
+        {
+          "esperarTexto": "Horário reservado!"
+        },
+        {
+          "esperarTexto": "Corte masculino com Rafael Monteiro"
+        },
+        {
+          "clicar": "#sair"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-MINHAS-RESERVAS",
+      "requisito": "R39",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "esperarTexto": "Escolha o serviço"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        },
+        {
+          "clicar": "#agendar-horario-0"
+        },
+        {
+          "preencher": "#cad-nome",
+          "valor": "Cliente Homologação"
+        },
+        {
+          "preencher": "#cad-telefone",
+          "valor": "(21) 99876-5432"
+        },
+        {
+          "clicar": "#agendar-confirmar"
+        },
+        {
+          "esperarTexto": "Horário reservado!"
+        },
+        {
+          "esperarTexto": "Corte masculino com Rafael Monteiro"
+        },
+        {
+          "clicar": "a[data-nav=\"reservas\"]"
+        },
+        {
+          "esperarTexto": "Confirmado"
+        },
+        {
+          "esperarTexto": "Reagendar"
+        },
+        {
+          "esperarTexto": "Cancelar"
+        },
+        {
+          "clicar": "#sair"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-PAINEL",
+      "requisito": "R18",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "a[data-nav=\"equipe\"]"
+        },
+        {
+          "esperarTexto": "Área da equipe"
+        },
+        {
+          "preencher": "#equipe-login",
+          "valor": "gerente"
+        },
+        {
+          "preencher": "#equipe-senha",
+          "valor": "demo-homologacao-375"
+        },
+        {
+          "clicar": "#equipe-entrar"
+        },
+        {
+          "esperarTexto": "Bem-vindo ao painel."
+        },
+        {
+          "clicar": "#ptab-servicos"
+        },
+        {
+          "preencher": "#servico-nome",
+          "valor": "Hidratação"
+        },
+        {
+          "preencher": "#servico-duracao",
+          "valor": "30"
+        },
+        {
+          "preencher": "#servico-preco",
+          "valor": "35,00"
+        },
+        {
+          "clicar": "#servico-salvar"
+        },
+        {
+          "esperarTexto": "Serviço criado."
+        },
+        {
+          "clicar": "#sair"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-CONTATO",
+      "requisito": "R38",
+      "tipo": "tela",
+      "alvo": "autonomo",
+      "largura": 375,
+      "passos": [
+        {
+          "clicar": "a[data-nav=\"equipe\"]"
+        },
+        {
+          "esperarTexto": "Área da equipe"
+        },
+        {
+          "preencher": "#equipe-login",
+          "valor": "gerente"
+        },
+        {
+          "preencher": "#equipe-senha",
+          "valor": "demo-homologacao-375"
+        },
+        {
+          "clicar": "#equipe-entrar"
+        },
+        {
+          "esperarTexto": "Bem-vindo ao painel."
+        },
+        {
+          "clicar": "#ptab-barbearia"
+        },
+        {
+          "preencher": "#barbearia-endereco",
+          "valor": "Rua das Tesouras, 100 - Centro"
+        },
+        {
+          "preencher": "#barbearia-telefone",
+          "valor": "(11) 3456-7890"
+        },
+        {
+          "clicar": "#barbearia-salvar"
+        },
+        {
+          "esperarTexto": "Dados da barbearia salvos."
+        },
+        {
+          "clicar": "#sair"
+        },
+        {
+          "clicar": "a[data-nav=\"inicio\"]"
+        },
+        {
+          "esperarTexto": "Rua das Tesouras, 100 - Centro"
+        },
+        {
+          "esperarTexto": "(11) 3456-7890"
+        }
+      ]
+    },
+    {
+      "id": "FE-TELA-API",
+      "requisito": "R19",
+      "tipo": "tela",
+      "caminho": "/",
+      "largura": 375,
+      "passos": [
+        {
+          "esperarTexto": "Bruno Tavares"
+        },
+        {
+          "esperarTexto": "09:00 – 19:00"
+        },
+        {
+          "clicar": "#cta-agendar"
+        },
+        {
+          "clicar": "#servico-0"
+        },
+        {
+          "clicar": "#barbeiro-0"
+        },
+        {
+          "esperarTexto": "horário(s) livre(s)"
+        }
+      ]
+    },
+    {
+      "id": "FE-TESTE-INTERFACE",
+      "requisito": "R17",
+      "tipo": "teste",
+      "nome": "interface: agendamento completo com validação, confirmação e listagem em Minhas reservas"
+    },
+    {
+      "id": "FE-TESTE-CONFLITO",
+      "requisito": "R16",
+      "tipo": "teste",
+      "nome": "demo: reagendar mantém a reserva original quando o novo horário está ocupado; cancelar exige versão"
+    },
+    {
+      "id": "FE-TESTE-INTEGRACAO",
+      "requisito": "R19",
+      "tipo": "teste",
+      "nome": "integração: catálogo público com horário de funcionamento e cliente agenda, lista, reagenda e cancela"
+    },
+    {
+      "id": "FE-TESTE-ESTILO",
+      "requisito": "R21",
+      "tipo": "teste",
+      "nome": "estilo: tema escuro grafite com dourado discreto, tipografia elegante, ícones, cartões arredondados e animações suaves"
+    },
+    {
+      "id": "FE-TESTE-AUTONOMO",
+      "requisito": "R30",
+      "tipo": "teste",
+      "nome": "app-autonomo.html: arquivo único, sem rede, marcado como DEMONSTRAÇÃO e igual ao gerado a partir de public/"
+    },
+    {
+      "id": "FE-TESTE-PAINEL",
+      "requisito": "R14",
+      "tipo": "teste",
+      "nome": "interface: recuperação de acesso por código e painel da equipe com agenda e administração"
+    },
+    {
+      "id": "FE-TESTE-FLUXOS-TELA",
+      "requisito": "R28",
+      "tipo": "teste",
+      "nome": "fluxos de tela do app-autonomo.html declarados na homologação executam em sequência a 375px"
+    },
+    {
+      "id": "DO-BUILD-PAGES",
+      "requisito": "R5",
+      "tipo": "comando",
+      "comando": "npm run build",
+      "codigo": 0,
+      "saidaContem": [
+        "build-pages: 4 arquivos"
+      ]
+    },
+    {
+      "id": "DO-TESTE-BUILD",
+      "requisito": "R5",
+      "tipo": "teste",
+      "nome": "devops: build gera a versão HTML pública autônoma em dist/"
+    },
+    {
+      "id": "DO-TESTE-VALIDACAO-HTML",
+      "requisito": "R20",
+      "tipo": "teste",
+      "nome": "devops: validação recusa HTML que depende de rede, módulo ou segredo"
+    },
+    {
+      "id": "DO-PIPELINE",
+      "requisito": "R4",
+      "tipo": "arquivo",
+      "caminho": ".github/workflows/ci.yml",
+      "contem": [
+        "npm ci",
+        "npm run check",
+        "npm test",
+        "npm run build"
+      ]
+    },
+    {
+      "id": "DO-URL-PUBLICA",
+      "requisito": "R5",
+      "tipo": "integracao",
+      "situacao": "implementada",
+      "dependencia": "Publicação no GitHub Pages (pages.yml + scripts/publicar-github-pages.ps1) aguardando confirmação do dono para criar o repositório público e fazer push; nenhuma URL pública existe ainda."
+    }
+  ],
+  "pendencias": [
+    "Integração: frontend (public/), API (server/) e PostgreSQL (pg com DATABASE_URL ou PGlite embutido em DATA_DIR) ligados e conferidos de ponta a ponta em processo separado (npm run e2e) e no Chrome real; detalhes em docs/INTEGRACAO.md.",
+    "R5 NÃO ATENDIDO: nenhuma URL pública publicada: CI (.github/workflows/ci.yml), deploy no GitHub Pages (pages.yml), build (npm run build → dist/pages) e Dockerfile do backend estão prontos e testados localmente; publicar exige confirmação do dono (scripts/publicar-github-pages.ps1 -Confirmar). Backend público exige conta de hospedagem do dono.",
+    "Recuperação de acesso por SMS não validada no provedor: exige conta Twilio do dono.",
+    "Frontend: public/index.html (API real) e app-autonomo.html (DEMONSTRAÇÃO offline, localStorage) com fluxos de tela FE-*. HTML/CSS/JS sem framework: React, Next.js e Tailwind (R12) não foram adotados nem instalados.",
+    "R22–R26 (dourado, tipografia, ícones, cartões, animações) têm prova por teste de estilo (FE-TESTE-ESTILO) e pela tela; avaliação estética final é humana.",
+    "R7..R12 têm prova nos relatórios de pesquisa (docs/PESQUISA.md, docs/PESQUISA-COMPLEMENTAR.md); nenhum código externo foi copiado.",
+    "O pedido cita mais 249 itens além de R40 que não chegaram ao texto recebido; não foram inventados.",
+    "O limite de login (5 em 15 min por login, persistente) conta também logins certos: repetir BE-PAINEL muitas vezes sobre o mesmo data/ devolve 429 até a janela passar."
+  ],
+  "htmlAutonomo": "app-autonomo.html"
+}
